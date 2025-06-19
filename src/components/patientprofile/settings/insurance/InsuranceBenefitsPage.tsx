@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Shield, Clock, Calendar, ChevronRight, Bell, User, Activity } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { BottomNavigation } from '../../category/BottomNavigation';
 
 interface BenefitItem {

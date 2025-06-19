@@ -4,7 +4,7 @@ import { SearchTabs } from './SearchTabs';
 import { PhotoGrid } from './PhotoGrid';
 import { BottomNavigation } from '../category/BottomNavigation';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface SearchPageProps {
   onBack?: () => void;

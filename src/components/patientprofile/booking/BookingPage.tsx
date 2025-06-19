@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { BookingHeader } from './BookingHeader';
 import { BookingTabs } from './BookingTabs';
 import { BookingCard } from './BookingCard';
 import { BottomNavigation } from '../category/BottomNavigation';
-import { bookingsData } from '../../data/bookingsData';
+import { bookingsData } from '../../../data/bookingsData';
 
 interface BookingPageProps {
   onBack?: () => void;

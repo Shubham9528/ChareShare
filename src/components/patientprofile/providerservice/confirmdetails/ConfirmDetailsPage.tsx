@@ -6,9 +6,9 @@ import { PatientDetailsSection } from './PatientDetailsSection';
 import { ScheduledAppointmentSection } from './ScheduledAppointmentSection';
 import { AmountAppointmentSection } from './AmountAppointmentSection';
 import { BookingConfirmPopup } from '../confirmpopup/BookingConfirmPopup';
-import { DetailedProvider } from '../../../types/provider';
+import { DetailedProvider } from '../../../../types/provider';
 import { PackageOption } from '../package/PackageSelectionPage';
-import { mockProviders } from '../../../data/mockProviders';
+import { mockProviders } from '../../../../data/mockProviders';
 
 export interface PatientDetails {
   fullName: string;

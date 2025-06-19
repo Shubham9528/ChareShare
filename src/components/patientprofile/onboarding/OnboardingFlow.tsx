@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OnboardingScreen } from './OnboardingScreen';
-import { onboardingSteps } from '../../data/onboardingSteps';
+import { onboardingSteps } from '../../../data/onboardingSteps';
 
 interface OnboardingFlowProps {
   onComplete?: () => void;

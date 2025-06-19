@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LogOut } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SettingsHeader } from './SettingsHeader';
 import { UserProfileCard } from './UserProfileCard';

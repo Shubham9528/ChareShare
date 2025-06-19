@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Camera, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();

@@ -6,8 +6,8 @@ import { AppointmentTypeCard } from './AppointmentTypeCard';
 import { AddressSelection } from './AddressSelection';
 import { DateTimeSelection } from './DateTimeSelection';
 import { ConcernInput } from './ConcernInput';
-import { DetailedProvider } from '../../../types/provider';
-import { mockProviders } from '../../../data/mockProviders';
+// import { DetailedProvider } from '../../../types/provider';
+import { mockProviders } from '../../../../data/mockProviders';
 
 interface AppointmentBookingPageProps {
   onBack?: () => void;
