@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CategoryHeader } from './CategoryHeader';
 import { ProviderCard } from './ProviderCard';
 import { FloatingActionButton } from './FloatingActionButton';
 import { BottomNavigation } from './BottomNavigation';
-import { providersData } from '../../../data/providersData';
-import { Provider } from '../../../types/provider';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Info } from 'lucide-react';
+import { useCategories } from '../../../hooks/useCategories';
 
 interface CategoryPageProps {
   onBack?: () => void;
@@ -17,6 +16,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ onBack }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { categories, loading } = useCategories();
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('home');
 
@@ -28,9 +28,9 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ onBack }) => {
     );
   };
 
-  const handleProviderCardClick = (provider: Provider) => {
+  const handleProviderCardClick = (category: string) => {
     const basePath = user ? '/patient/providers' : '/browse/providers';
-    navigate(`${basePath}/${provider.category.toLowerCase()}`);
+    navigate(`${basePath}/${category.toLowerCase()}`);
   };
 
   const handleShare = () => {
@@ -131,17 +131,30 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ onBack }) => {
 
         {/* Providers Grid with Info Icon */}
         <div className="relative max-w-md mx-auto">
-          <div className="grid grid-cols-2 gap-4">
-            {providersData.map((provider) => (
-              <ProviderCard
-                key={provider.id}
-                provider={provider}
-                isSelected={selectedProviders.includes(provider.id)}
-                onSelect={() => handleProviderSelect(provider.id)}
-                onCardClick={() => handleProviderCardClick(provider)}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {categories.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={{
+                    id: provider.id,
+                    category: provider.name,
+                    name: '',
+                    svgIcon: provider.icon_svg,
+                    iconColor: provider.icon_color,
+                    iconBg: provider.icon_bg
+                  }}
+                  isSelected={selectedProviders.includes(provider.id)}
+                  onSelect={() => handleProviderSelect(provider.id)}
+                  onCardClick={() => handleProviderCardClick(provider.name)}
+                />
+              ))}
+            </div>
+          )}
           
           {/* Centered Info Icon - Larger Size */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Menu, Edit, Plus, ChevronRight, Copy, Share, Download, Upload, Camera, X, Check } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -6,11 +6,11 @@ import { QRCodeSection } from './QRCodeSection';
 import { ProfileSection } from './ProfileSection';
 import { EmergencyContact } from './EmergencyContact';
 import { MedicalItem } from './MedicalItem';
-// import { BottomNavigation } from '../category/BottomNavigation';
 import { AddContactModal } from './AddContactModal';
 import { AddMedicalItemModal } from './AddMedicalItemModal';
 import { EditBloodTypeModal } from './EditBloodTypeModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
+import { usePatientProfile } from '../../../hooks/usePatientProfile';
 
 interface ProfilePageProps {
   onBack?: () => void;
@@ -23,6 +23,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   const [bloodType, setBloodType] = useState('A+');
   const [activeNavTab, setActiveNavTab] = useState('profile');
   
+  const {
+    patientProfile,
+    emergencyContacts,
+    medicalRecords,
+    loading,
+    updatePatientProfile,
+    addEmergencyContact,
+    deleteEmergencyContact,
+    addMedicalRecord,
+    deleteMedicalRecord
+  } = usePatientProfile();
+  
   // Modal states
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddAllergy, setShowAddAllergy] = useState(false);
@@ -33,15 +45,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   const [showShareOptions, setShowShareOptions] = useState(false);
 
   // Data states
-  const [emergencyContacts, setEmergencyContacts] = useState([
-    {
-      id: '1',
-      name: 'John Smith',
-      relationship: 'Spouse',
-      phone: '(555) 123-4567'
-    }
-  ]);
-
   const [allergies, setAllergies] = useState([
     { id: '1', name: 'Penicillin', severity: 'severe' },
     { id: '2', name: 'Shellfish', severity: 'moderate' }
@@ -57,10 +60,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     { id: '2', name: 'Type 2 Diabetes', type: 'chronic' }
   ]);
 
-  const [documents, setDocuments] = useState([
-    { id: '1', name: 'Medical History.pdf', type: 'Medical History', uploadDate: '2024-01-15' },
-    { id: '2', name: 'Lab Results.pdf', type: 'Lab Results', uploadDate: '2024-01-10' }
-  ]);
+  // Update blood type from patient profile
+  useEffect(() => {
+    if (patientProfile?.blood_type) {
+      setBloodType(patientProfile.blood_type);
+    }
+  }, [patientProfile]);
 
   const handleQRAction = (action: 'copy' | 'share' | 'download') => {
     switch (action) {
@@ -182,13 +187,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   }, [location.pathname]);
 
   // Add handlers for data operations
-  const handleAddContact = (contact: { name: string; relationship: string; phone: string }) => {
-    const newContact = {
-      id: Date.now().toString(),
-      ...contact
-    };
-    setEmergencyContacts(prev => [...prev, newContact]);
-    setShowAddContact(false);
+  const handleAddContact = async (contact: { name: string; relationship: string; phone: string }) => {
+    try {
+      await addEmergencyContact(contact);
+      setShowAddContact(false);
+    } catch (error) {
+      console.error('Failed to add contact:', error);
+      alert('Failed to add contact. Please try again.');
+    }
   };
 
   const handleAddAllergy = (allergy: { name: string; severity: string }) => {
@@ -218,20 +224,38 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     setShowAddCondition(false);
   };
 
-  const handleUpdateBloodType = (newBloodType: string) => {
-    setBloodType(newBloodType);
-    setShowEditBloodType(false);
+  const handleUpdateBloodType = async (newBloodType: string) => {
+    try {
+      await updatePatientProfile({ blood_type: newBloodType });
+      setBloodType(newBloodType);
+      setShowEditBloodType(false);
+    } catch (error) {
+      console.error('Failed to update blood type:', error);
+      alert('Failed to update blood type. Please try again.');
+    }
   };
 
-  const handleDocumentUpload = (document: { name: string; type: string; file: File }) => {
-    const newDocument = {
-      id: Date.now().toString(),
-      name: document.name,
-      type: document.type,
-      uploadDate: new Date().toISOString().split('T')[0]
-    };
-    setDocuments(prev => [...prev, newDocument]);
-    setShowDocumentUpload(false);
+  const handleDocumentUpload = async (document: { name: string; type: string; file: File }) => {
+    try {
+      // First upload the file to storage
+      const path = `medical_records/${user?.id}/${Date.now()}_${document.file.name}`;
+      await dbService.uploadFile('documents', path, document.file);
+      
+      // Get the public URL
+      const documentUrl = dbService.getFileUrl('documents', path);
+      
+      // Add the record to the database
+      await addMedicalRecord({
+        record_type: document.type,
+        document_name: document.name,
+        document_url: documentUrl
+      });
+      
+      setShowDocumentUpload(false);
+    } catch (error) {
+      console.error('Failed to upload document:', error);
+      alert('Failed to upload document. Please try again.');
+    }
   };
 
   const handleShare = (platform: string) => {
@@ -255,10 +279,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     setShowShareOptions(false);
   };
 
+  const handleDeleteEmergencyContact = async (id: string) => {
+    try {
+      await deleteEmergencyContact(id);
+    } catch (error) {
+      console.error('Failed to delete contact:', error);
+      alert('Failed to delete contact. Please try again.');
+    }
+  };
+
   const handleDeleteItem = (section: string, id: string) => {
     switch (section) {
       case 'contact':
-        setEmergencyContacts(prev => prev.filter(item => item.id !== id));
+        handleDeleteEmergencyContact(id);
         break;
       case 'allergy':
         setAllergies(prev => prev.filter(item => item.id !== id));
@@ -270,10 +303,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
         setMedicalConditions(prev => prev.filter(item => item.id !== id));
         break;
       case 'document':
-        setDocuments(prev => prev.filter(item => item.id !== id));
+        deleteMedicalRecord(id).catch(err => {
+          console.error('Failed to delete document:', err);
+          alert('Failed to delete document. Please try again.');
+        });
         break;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -323,13 +367,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             onAdd={() => handleAddItem('contact')}
           >
             <div className="space-y-3">
-              {emergencyContacts.map((contact) => (
-                <EmergencyContact 
-                  key={contact.id} 
-                  contact={contact}
-                  onDelete={() => handleDeleteItem('contact', contact.id)}
-                />
-              ))}
+              {emergencyContacts.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No emergency contacts added yet
+                </div>
+              ) : (
+                emergencyContacts.map((contact) => (
+                  <EmergencyContact 
+                    key={contact.id} 
+                    contact={contact}
+                    onDelete={() => handleDeleteItem('contact', contact.id)}
+                  />
+                ))
+              )}
             </div>
           </ProfileSection>
 
@@ -339,15 +389,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             onAdd={() => handleAddItem('allergy')}
           >
             <div className="space-y-3">
-              {allergies.map((allergy) => (
-                <MedicalItem
-                  key={allergy.id}
-                  icon="🚫"
-                  name={allergy.name}
-                  severity={allergy.severity}
-                  onDelete={() => handleDeleteItem('allergy', allergy.id)}
-                />
-              ))}
+              {allergies.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No allergies added yet
+                </div>
+              ) : (
+                allergies.map((allergy) => (
+                  <MedicalItem
+                    key={allergy.id}
+                    icon="🚫"
+                    name={allergy.name}
+                    severity={allergy.severity}
+                    onDelete={() => handleDeleteItem('allergy', allergy.id)}
+                  />
+                ))
+              )}
             </div>
           </ProfileSection>
 
@@ -357,16 +413,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             onAdd={() => handleAddItem('medication')}
           >
             <div className="space-y-3">
-              {medications.map((medication) => (
-                <MedicalItem
-                  key={medication.id}
-                  icon="💊"
-                  name={medication.name}
-                  dosage={medication.dosage}
-                  showChevron
-                  onDelete={() => handleDeleteItem('medication', medication.id)}
-                />
-              ))}
+              {medications.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No medications added yet
+                </div>
+              ) : (
+                medications.map((medication) => (
+                  <MedicalItem
+                    key={medication.id}
+                    icon="💊"
+                    name={medication.name}
+                    dosage={medication.dosage}
+                    showChevron
+                    onDelete={() => handleDeleteItem('medication', medication.id)}
+                  />
+                ))
+              )}
             </div>
           </ProfileSection>
 
@@ -376,15 +438,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             onAdd={() => handleAddItem('condition')}
           >
             <div className="space-y-3">
-              {medicalConditions.map((condition) => (
-                <MedicalItem
-                  key={condition.id}
-                  icon={condition.name.includes('Hypertension') ? '❤️' : '🔵'}
-                  name={condition.name}
-                  type={condition.type}
-                  onDelete={() => handleDeleteItem('condition', condition.id)}
-                />
-              ))}
+              {medicalConditions.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No medical conditions added yet
+                </div>
+              ) : (
+                medicalConditions.map((condition) => (
+                  <MedicalItem
+                    key={condition.id}
+                    icon={condition.name.includes('Hypertension') ? '❤️' : '🔵'}
+                    name={condition.name}
+                    type={condition.type}
+                    onDelete={() => handleDeleteItem('condition', condition.id)}
+                  />
+                ))
+              )}
             </div>
           </ProfileSection>
 
@@ -394,33 +462,43 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             onAdd={() => handleAddItem('document')}
           >
             <div className="space-y-3">
-              {documents.map((document) => (
-                <div key={document.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{document.name}</h3>
-                      <p className="text-sm text-gray-600">{document.type} • {document.uploadDate}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {/* Download document */}}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors duration-200"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteItem('document', document.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+              {medicalRecords.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No medical documents uploaded yet
                 </div>
-              ))}
+              ) : (
+                medicalRecords.map((document) => (
+                  <div key={document.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{document.document_name}</h3>
+                        <p className="text-sm text-gray-600">{document.record_type} • {new Date(document.upload_date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {document.document_url && (
+                        <a
+                          href={document.document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors duration-200"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleDeleteItem('document', document.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </ProfileSection>
         </div>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, UserProfile } from '../lib/supabase';
+import { supabase, UserProfile, dbService } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -147,17 +147,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId);
+        .eq('id', userId)
+        .single();
 
       if (error) {
         console.error('AuthProvider: Error fetching user profile:', error);
         await createNewProfile(userId, setLoadingState, preferredUserType);
-      } else if (!data || data.length === 0) {
+      } else if (!data) {
         // No profile found, create a new one
         await createNewProfile(userId, setLoadingState, preferredUserType);
       } else {
         // Profile found, but check if we need to update user_type based on stored preference
-        const existingProfile = data[0];
+        const existingProfile = data as UserProfile;
         const storedUserType = localStorage.getItem('selectedUserType');
         
         if (storedUserType && existingProfile.user_type !== storedUserType) {
@@ -176,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Error updating user type:', updateError);
             setProfile(existingProfile);
           } else if (updatedData && updatedData.length > 0) {
-            setProfile(updatedData[0]);
+            setProfile(updatedData[0] as UserProfile);
           } else {
             setProfile(existingProfile);
           }
@@ -227,7 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Profile created successfully, use the first result
         console.log('Profile created successfully:', data[0]);
-        setProfile(data[0]);
+        setProfile(data[0] as UserProfile);
         if (setLoadingState) setLoading(false);
       }
     } catch (error) {
@@ -386,7 +387,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     try {
       // Use the current origin as the redirect URL
-      const redirectTo = `${window.location.origin}`;
+      const redirectTo = `${window.location.origin}/auth/callback`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -412,10 +413,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('No user logged in') };
       }
 
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
+      const { error } = await dbService.updateUserProfile(user.id, updates);
 
       if (error) {
         console.error('AuthProvider: Profile update error:', error);

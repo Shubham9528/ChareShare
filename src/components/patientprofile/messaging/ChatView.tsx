@@ -1,20 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Phone, Video, MoreVertical, Send, Paperclip, Smile } from 'lucide-react';
-import { Chat, Message } from '../../types/messaging';
+import { Chat } from '../../types/messaging';
+
+interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  isFromMe: boolean;
+  type?: 'text' | 'image' | 'file';
+}
 
 interface ChatViewProps {
   chat: Chat;
+  messages: Message[];
   onBack: () => void;
+  onSendMessage: (content: string) => Promise<any>;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ chat, onBack }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ 
+  chat, 
+  messages, 
+  onBack,
+  onSendMessage
+}) => {
   const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      // Implement send message logic
-      console.log('Sending message:', newMessage);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isSending) return;
+
+    try {
+      setIsSending(true);
+      await onSendMessage(newMessage.trim());
       setNewMessage('');
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -24,26 +58,6 @@ export const ChatView: React.FC<ChatViewProps> = ({ chat, onBack }) => {
       handleSendMessage();
     }
   };
-
-  // Mock messages for the chat
-  const messages: Message[] = [
-    {
-      id: '1',
-      senderId: chat.id,
-      senderName: chat.name,
-      content: chat.lastMessage,
-      timestamp: chat.lastMessageTime,
-      isFromMe: false
-    },
-    {
-      id: '2',
-      senderId: 'me',
-      senderName: 'You',
-      content: 'Thank you for the information!',
-      timestamp: new Date().toISOString(),
-      isFromMe: true
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -112,30 +126,40 @@ export const ChatView: React.FC<ChatViewProps> = ({ chat, onBack }) => {
 
       {/* Messages */}
       <div className="flex-1 px-4 py-6 space-y-4 overflow-y-auto">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.isFromMe ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                message.isFromMe
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}
-            >
-              <p className="text-sm">{message.content}</p>
-              <p className={`text-xs mt-1 ${
-                message.isFromMe ? 'text-blue-100' : 'text-gray-500'
-              }`}>
-                {new Date(message.timestamp).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </p>
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-gray-500">
+              <p className="mb-2">No messages yet</p>
+              <p className="text-sm">Start the conversation by sending a message</p>
             </div>
           </div>
-        ))}
+        ) : (
+          messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.isFromMe ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                  message.isFromMe
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                <p className="text-sm">{message.content}</p>
+                <p className={`text-xs mt-1 ${
+                  message.isFromMe ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  {new Date(message.timestamp).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
@@ -152,7 +176,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ chat, onBack }) => {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type a message..."
-              className="w-full px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors duration-200"
+              disabled={isSending}
+              className="w-full px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors duration-200 disabled:opacity-50"
             />
             <button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 transition-colors duration-200">
               <Smile className="w-5 h-5 text-gray-500" />
@@ -161,15 +186,19 @@ export const ChatView: React.FC<ChatViewProps> = ({ chat, onBack }) => {
           
           <button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || isSending}
             className="p-3 rounded-full text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: newMessage.trim() 
+              background: newMessage.trim() && !isSending
                 ? 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)' 
                 : '#D1D5DB'
             }}
           >
-            <Send className="w-5 h-5" />
+            {isSending ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>

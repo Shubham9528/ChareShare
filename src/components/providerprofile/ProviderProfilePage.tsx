@@ -1,29 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProviderProfileHeader } from './ProviderProfileHeader';
 import { ProviderProfileInfo } from './ProviderProfileInfo';
 import { ProviderProfileTabs } from './ProviderProfileTabs';
 import { ProviderProfileContent } from './ProviderProfileContent';
 import { ProviderBottomNavigation } from './ProviderBottomNavigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProviderProfile } from '../../hooks/useProviderProfile';
 
 export type ProviderTab = 'details' | 'posts' | 'articles';
 
 export const ProviderProfilePage: React.FC = () => {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<ProviderTab>('posts');
-
-  // Mock provider data - in real app, this would come from the database
-  const providerData = {
-    name: profile?.full_name || 'Dr. Sarah Wilson',
-    specialization: 'Cardiologist',
-    experience: '+4 Year Experience',
-    avatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=200',
-    stats: {
-      articles: 275,
-      followers: 234,
-      reviews: 4.9,
-    }
-  };
+  const { providerProfile, loading } = useProviderProfile();
 
   const handleEdit = () => {
     console.log('Edit profile');
@@ -38,6 +27,28 @@ export const ProviderProfilePage: React.FC = () => {
   const handleAddContent = () => {
     console.log('Add new content');
     // Implement add content functionality
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Provider data from profile or fallback
+  const providerData = {
+    id: user?.id || '',
+    name: profile?.full_name || 'Dr. Sarah Wilson',
+    specialization: providerProfile?.specialization || 'Healthcare Provider',
+    experience: `+${providerProfile?.years_of_experience || 0} Year Experience`,
+    avatar: profile?.avatar_url || 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=200',
+    stats: {
+      articles: 275,
+      followers: 234,
+      reviews: providerProfile?.rating || 4.9,
+    }
   };
 
   return (

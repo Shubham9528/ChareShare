@@ -6,7 +6,7 @@ import { OnlineUsers } from './OnlineUsers';
 import { ChatList } from './ChatList';
 import { ChatView } from './ChatView';
 import { BottomNavigation } from '../category/BottomNavigation';
-import { messagesData } from '../../../data/messagesData';
+import { useMessages } from '../../../hooks/useMessages';
 
 interface MessagingPageProps {
   onBack?: () => void;
@@ -16,15 +16,23 @@ export const MessagingPage: React.FC<MessagingPageProps> = ({ onBack }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [activeNavTab, setActiveNavTab] = useState('message');
+  
+  const { 
+    conversations, 
+    messages, 
+    loading, 
+    currentChat, 
+    setCurrentChat,
+    sendMessage
+  } = useMessages();
 
   const handleChatSelect = (chatId: string) => {
-    setSelectedChatId(chatId);
+    setCurrentChat(chatId);
   };
 
   const handleBackFromChat = () => {
-    setSelectedChatId(null);
+    setCurrentChat(null);
   };
 
   const handleTabChange = (tab: string) => {
@@ -88,13 +96,32 @@ export const MessagingPage: React.FC<MessagingPageProps> = ({ onBack }) => {
   }, [location.pathname]);
 
   // If a chat is selected, show the chat view
-  if (selectedChatId) {
-    const selectedChat = messagesData.find(chat => chat.id === selectedChatId);
+  if (currentChat) {
+    const selectedChat = conversations.find(chat => chat.id === currentChat);
     if (selectedChat) {
       return (
         <ChatView 
-          chat={selectedChat} 
-          onBack={handleBackFromChat} 
+          chat={{
+            id: selectedChat.id,
+            name: selectedChat.name,
+            avatar: selectedChat.avatar_url || '',
+            lastMessage: selectedChat.lastMessage,
+            lastMessageTime: selectedChat.lastMessageTime,
+            unreadCount: selectedChat.unreadCount,
+            isOnline: selectedChat.isOnline,
+            specialty: selectedChat.specialty
+          }}
+          messages={messages.map(msg => ({
+            id: msg.id,
+            senderId: msg.sender_id,
+            senderName: msg.sender_id === user?.id ? 'You' : selectedChat.name,
+            content: msg.content,
+            timestamp: msg.created_at,
+            isFromMe: msg.sender_id === user?.id,
+            type: msg.message_type
+          }))}
+          onBack={handleBackFromChat}
+          onSendMessage={sendMessage}
         />
       );
     }
@@ -107,24 +134,45 @@ export const MessagingPage: React.FC<MessagingPageProps> = ({ onBack }) => {
 
       {/* Content */}
       <div className="flex-1 px-4 py-6 pb-24">
-        {/* Chats Section */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Chats</h2>
-          
-          {/* Online Users */}
-          <OnlineUsers />
-        </div>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <>
+            {/* Chats Section */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Chats</h2>
+              
+              {/* Online Users */}
+              <OnlineUsers users={conversations.filter(c => c.isOnline).map(c => ({
+                id: c.id,
+                name: c.name,
+                avatar: c.avatar_url || ''
+              }))} />
+            </div>
 
-        {/* All Messages Section */}
-        <div>
-          <h3 className="text-base font-medium text-gray-600 mb-4">All messages</h3>
-          
-          {/* Chat List */}
-          <ChatList 
-            chats={messagesData} 
-            onChatSelect={handleChatSelect} 
-          />
-        </div>
+            {/* All Messages Section */}
+            <div>
+              <h3 className="text-base font-medium text-gray-600 mb-4">All messages</h3>
+              
+              {/* Chat List */}
+              <ChatList 
+                chats={conversations.map(conv => ({
+                  id: conv.id,
+                  name: conv.name,
+                  avatar: conv.avatar_url || '',
+                  lastMessage: conv.lastMessage,
+                  lastMessageTime: conv.lastMessageTime,
+                  unreadCount: conv.unreadCount,
+                  isOnline: conv.isOnline,
+                  specialty: conv.specialty
+                }))} 
+                onChatSelect={handleChatSelect} 
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bottom Navigation */}

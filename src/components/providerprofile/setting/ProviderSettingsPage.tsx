@@ -110,7 +110,7 @@ export const ProviderSettingsPage: React.FC = () => {
                     {profile?.full_name || 'John Worky'}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    hello@designpicko.com
+                    {profile?.email || 'hello@designpicko.com'}
                   </p>
                 </div>
               </div>

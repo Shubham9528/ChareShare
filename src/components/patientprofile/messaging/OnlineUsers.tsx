@@ -1,10 +1,27 @@
 import React from 'react';
-import { onlineUsersData } from '../../../data/messagesData';
 
-export const OnlineUsers: React.FC = () => {
+interface OnlineUser {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+interface OnlineUsersProps {
+  users: OnlineUser[];
+}
+
+export const OnlineUsers: React.FC<OnlineUsersProps> = ({ users }) => {
+  if (users.length === 0) {
+    return (
+      <div className="text-center py-4 text-gray-500 text-sm">
+        No users online at the moment
+      </div>
+    );
+  }
+
   return (
     <div className="flex space-x-4 overflow-x-auto pb-2">
-      {onlineUsersData.map((user) => (
+      {users.map((user) => (
         <button
           key={user.id}
           className="flex-shrink-0 relative focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"

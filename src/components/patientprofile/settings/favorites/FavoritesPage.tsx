@@ -1,23 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Heart, Star, MapPin, Clock, Search, Filter } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
-// import { BottomNavigation } from '../../category/BottomNavigation';
-
-interface FavoriteProvider {
-  id: string;
-  name: string;
-  specialization: string;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  address: string;
-  distance: string;
-  estimatedTime: string;
-  availability: string;
-  hours: string;
-  isFavorite: boolean;
-}
+import { dbService } from '../../../../lib/supabase';
 
 export const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,70 +11,68 @@ export const FavoritesPage: React.FC = () => {
   const [activeNavTab, setActiveNavTab] = useState('profile');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'distance'>('default');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [favoriteProviders, setFavoriteProviders] = useState<any[]>([]);
 
-  // Mock favorite providers data
-  const [favoriteProviders, setFavoriteProviders] = useState<FavoriteProvider[]>([
-    {
-      id: '1',
-      name: 'James Harris',
-      specialization: 'Dentist',
-      image: 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
-      rating: 4.9,
-      reviewCount: 96,
-      address: '8398 Preston Rd, Inglewood, Maine 98262',
-      distance: '1.5km',
-      estimatedTime: '15 min',
-      availability: 'Mon-Sun',
-      hours: '11am - 11pm',
-      isFavorite: true
-    },
-    {
-      id: '2',
-      name: 'Dr. Sarah Chen',
-      specialization: 'Dentist',
-      image: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=400',
-      rating: 4.9,
-      reviewCount: 96,
-      address: '8398 Preston Rd, Inglewood, Maine 98262',
-      distance: '1.5km',
-      estimatedTime: '15 min',
-      availability: 'Mon-Sun',
-      hours: '11am - 11pm',
-      isFavorite: true
-    },
-    {
-      id: '3',
-      name: 'Dr. Mike Ross',
-      specialization: 'Dentist',
-      image: 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
-      rating: 4.9,
-      reviewCount: 96,
-      address: '8398 Preston Rd, Inglewood, Maine 98262',
-      distance: '1.5km',
-      estimatedTime: '15 min',
-      availability: 'Mon-Sun',
-      hours: '11am - 11pm',
-      isFavorite: true
-    }
-  ]);
+  // Fetch favorite providers
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (!user) {
+        setFavoriteProviders([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await dbService.getFavoriteProviders(user.id);
+        
+        // Transform data to match our UI needs
+        const providers = data.map(item => ({
+          id: item.provider_id,
+          name: item.provider.user_profile.full_name,
+          specialization: item.provider.specialization,
+          image: item.provider.user_profile.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
+          rating: item.provider.rating,
+          reviewCount: item.provider.review_count,
+          address: item.provider.clinic_address || '123 Medical Center, Downtown',
+          distance: '2.5km', // Would need geolocation
+          estimatedTime: '20 min', // Would need routing
+          availability: 'Mon-Fri',
+          hours: '9am - 5pm',
+          isFavorite: true
+        }));
+        
+        setFavoriteProviders(providers);
+      } catch (err) {
+        console.error('Error fetching favorites:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFavorites();
+  }, [user]);
 
   const handleBack = () => {
     navigate('/patient/profile/setting');
   };
 
-  const handleToggleFavorite = (providerId: string) => {
-    setFavoriteProviders(prev => 
-      prev.map(provider => 
-        provider.id === providerId 
-          ? { ...provider, isFavorite: !provider.isFavorite }
-          : provider
-      ).filter(provider => provider.isFavorite) // Remove unfavorited providers
-    );
+  const handleToggleFavorite = async (providerId: string) => {
+    try {
+      await dbService.removeFavorite(user!.id, providerId);
+      setFavoriteProviders(prev => prev.filter(provider => provider.id !== providerId));
+    } catch (error) {
+      console.error('Failed to remove favorite:', error);
+      alert('Failed to remove from favorites. Please try again.');
+    }
   };
 
-  const handleProviderClick = (provider: FavoriteProvider) => {
+  const handleProviderClick = (provider: any) => {
     // Navigate to provider details
-    console.log('Navigate to provider:', provider.name);
+    navigate(`/patient/providers/${provider.specialization.toLowerCase()}/selectedprofile`, {
+      state: { provider }
+    });
   };
 
   const handleTabChange = (tab: string) => {
@@ -226,7 +209,11 @@ export const FavoritesPage: React.FC = () => {
 
         {/* Providers List */}
         <div className="space-y-4">
-          {sortedProviders.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : sortedProviders.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Heart className="w-8 h-8 text-gray-400" />
@@ -340,9 +327,6 @@ export const FavoritesPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Bottom Navigation */}
-      
     </div>
   );
 };
