@@ -35,15 +35,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     setIsSigningOut(true);
     
     try {
+      // Clear local state first for better UX
+      localStorage.removeItem('selectedUserType');
+      
       const result = await signOut();
       
       if (result.error) {
         console.error('Logout failed:', result.error);
-        alert('Logout failed: ' + result.error.message);
+        // Even if there's an error, we'll still redirect to the welcome page
+        // This handles the case where the session is already expired on the server
       }
+      
+      // Always navigate to welcome page after logout attempt
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Unexpected logout error:', error);
-      alert('An unexpected error occurred during logout');
+      // Still navigate to welcome page
+      navigate('/', { replace: true });
     } finally {
       setIsSigningOut(false);
       setShowLogoutPopup(false);
