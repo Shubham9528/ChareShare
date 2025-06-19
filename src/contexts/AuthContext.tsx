@@ -348,21 +348,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear any stored user type preference
       localStorage.removeItem('selectedUserType');
       
-      // Check if there's an active session before attempting to sign out
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      // Attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
       
-      if (currentSession) {
-        const { error } = await supabase.auth.signOut();
-        
-        if (error) {
-          console.error('AuthProvider: Sign out error:', error);
-          return { error };
+      if (error) {
+        // Check if the error is due to an expired/missing session
+        if (error.message?.includes('Session from session_id claim in JWT does not exist') || 
+            error.message?.includes('session_not_found') ||
+            error.message?.includes('Auth session missing')) {
+          // Session is already invalid on the server, so logout is effectively successful
+          console.log('Session already expired on server, logout completed locally');
+          return { error: null };
         }
+        
+        console.error('AuthProvider: Sign out error:', error);
+        return { error };
       }
       
       return { error: null };
     } catch (error) {
       console.error('AuthProvider: Unexpected sign out error:', error);
+      
+      // Check if it's a session-related error
+      const errorMessage = (error as Error)?.message || '';
+      if (errorMessage.includes('Session from session_id claim in JWT does not exist') || 
+          errorMessage.includes('session_not_found') ||
+          errorMessage.includes('Auth session missing')) {
+        // Session is already invalid, treat as successful logout
+        console.log('Session already expired, logout completed locally');
+        return { error: null };
+      }
+      
       return { error: error as AuthError };
     }
   };
