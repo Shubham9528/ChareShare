@@ -100,10 +100,10 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
       <ProviderProfilePage 
         provider={{
           id: providerToShow.id,
-          name: providerToShow.user_profile.full_name,
+          name: providerToShow.user_profile?.full_name || 'Provider Name',
           specialization: providerToShow.specialization,
           description: providerToShow.bio || "Experienced healthcare provider dedicated to patient care.",
-          image: providerToShow.user_profile.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
+          image: providerToShow.user_profile?.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
           rating: providerToShow.rating,
           reviewCount: providerToShow.review_count,
           address: providerToShow.clinic_address || '123 Medical Center, Downtown',
@@ -144,10 +144,10 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
           <ProviderResults
             providers={providers.map(p => ({
               id: p.id,
-              name: p.user_profile.full_name,
+              name: p.user_profile?.full_name || 'Provider Name',
               specialization: p.specialization,
               description: p.bio || "Experienced healthcare provider dedicated to patient care.",
-              image: p.user_profile.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
+              image: p.user_profile?.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
               rating: p.rating,
               reviewCount: p.review_count,
               address: p.clinic_address || '123 Medical Center, Downtown',
