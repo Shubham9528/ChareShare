@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ProviderProfileHeader } from './ProviderProfileHeader';
 import { ProviderProfileInfo } from './ProviderProfileInfo';
 import { ProviderProfileTabs } from './ProviderProfileTabs';
@@ -21,21 +21,28 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
 }) => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<ProfileTab>('details');
   const [isFollowing, setIsFollowing] = useState(false);
+
+  // Check if we have a provider from location state
+  const locationProvider = location.state?.provider;
+  const providerToUse = locationProvider || provider;
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
   };
 
   const handleMessage = () => {
-    console.log('Message provider:', provider.name);
+    console.log('Message provider:', providerToUse.name);
     // Implement messaging functionality
   };
 
   const handleBookAppointment = () => {
     // Navigate to appointment booking page with the new route structure
-    navigate(`/patient/providers/${category}/selectedprofile/selectappoinment`);
+    navigate(`/patient/providers/${category}/selectedprofile/selectappoinment`, {
+      state: { provider: providerToUse }
+    });
   };
 
   return (
@@ -47,7 +54,7 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
       <div className="px-4 py-6 space-y-6 pb-24">
         {/* Provider Info */}
         <ProviderProfileInfo 
-          provider={provider}
+          provider={providerToUse}
           isFollowing={isFollowing}
           onFollow={handleFollow}
           onMessage={handleMessage}
@@ -61,7 +68,7 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
 
         {/* Tab Content */}
         <ProviderProfileContent 
-          provider={provider}
+          provider={providerToUse}
           activeTab={activeTab}
         />
       </div>

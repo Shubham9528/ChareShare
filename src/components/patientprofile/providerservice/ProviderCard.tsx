@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, MapPin, Clock, Heart } from 'lucide-react';
 import { DetailedProvider } from '../../types/provider';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface ProviderCardProps {
   provider: DetailedProvider;
@@ -15,9 +16,17 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   onToggleFavorite,
   onCardClick
 }) => {
+  const navigate = useNavigate();
+  const { category } = useParams<{ category: string }>();
+
   const handleCardClick = () => {
     if (onCardClick) {
       onCardClick();
+    } else {
+      // Navigate directly to the selected profile route
+      navigate(`/patient/providers/${category}/selectedprofile`, { 
+        state: { provider } 
+      });
     }
   };
 
