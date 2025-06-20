@@ -144,6 +144,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (setLoadingState) setLoading(true);
       
+      // Wait a bit for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -152,10 +155,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('AuthProvider: Error fetching user profile:', error);
-        await createNewProfile(userId, setLoadingState, preferredUserType);
+        // If profile doesn't exist, the trigger should have created it, so try again
+        if (error.code === 'PGRST116') {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const { data: retryData, error: retryError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+          
+          if (retryError) {
+            await createFallbackProfile(userId, setLoadingState, preferredUserType);
+          } else {
+            setProfile(retryData as UserProfile);
+            if (setLoadingState) setLoading(false);
+          }
+        } else {
+          await createFallbackProfile(userId, setLoadingState, preferredUserType);
+        }
       } else if (!data) {
-        // No profile found, create a new one
-        await createNewProfile(userId, setLoadingState, preferredUserType);
+        // No profile found, create a fallback
+        await createFallbackProfile(userId, setLoadingState, preferredUserType);
       } else {
         // Profile found, but check if we need to update user_type based on stored preference
         const existingProfile = data as UserProfile;
@@ -189,50 +209,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('AuthProvider: Error fetching user profile:', error);
-      await createFallbackProfile(userId, setLoadingState, preferredUserType);
-    }
-  };
-
-  const createNewProfile = async (userId: string, setLoadingState = true, preferredUserType?: 'provider' | 'patient') => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        throw new Error('No user data available');
-      }
-
-      // Check for stored user type from OAuth flow or use preferred type
-      const storedUserType = localStorage.getItem('selectedUserType');
-      const userType = preferredUserType || storedUserType as 'provider' | 'patient' || userData.user.user_metadata?.user_type || 'patient';
-
-      const newProfile = {
-        id: userId,
-        user_type: userType,
-        full_name: userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'User',
-        email: userData.user.email || '',
-        phone: userData.user.user_metadata?.phone || null,
-      };
-
-      console.log('Creating new profile with data:', newProfile);
-
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .insert([newProfile])
-        .select();
-
-      if (error) {
-        console.error('AuthProvider: Error creating profile:', error);
-        await createFallbackProfile(userId, setLoadingState, preferredUserType);
-      } else if (!data || data.length === 0) {
-        // Insert didn't return data, create fallback
-        await createFallbackProfile(userId, setLoadingState, preferredUserType);
-      } else {
-        // Profile created successfully, use the first result
-        console.log('Profile created successfully:', data[0]);
-        setProfile(data[0] as UserProfile);
-        if (setLoadingState) setLoading(false);
-      }
-    } catch (error) {
-      console.error('AuthProvider: Error creating new profile:', error);
       await createFallbackProfile(userId, setLoadingState, preferredUserType);
     }
   };
