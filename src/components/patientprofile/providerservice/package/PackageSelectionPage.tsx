@@ -3,8 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { PackageHeader } from './PackageHeader';
 import { DurationSelector } from './DurationSelector';
 import { PackageOptions } from './PackageOptions';
-import { DetailedProvider } from '../../../types/provider';
-import { mockProviders } from '../../../data/mockProviders';
+// import { DetailedProvider } from '../../../types/provider';
+import { mockProviders } from '../../../../data/mockProviders';
 
 interface PackageSelectionPageProps {
   onBack?: () => void;

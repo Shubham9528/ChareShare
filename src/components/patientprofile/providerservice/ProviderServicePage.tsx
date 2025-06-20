@@ -4,9 +4,9 @@ import { ProviderServiceHeader } from './ProviderServiceHeader';
 import { SearchFilters } from './SearchFilters';
 import { ProviderResults } from './ProviderResults';
 import { ProviderProfilePage } from './selectedproviderinfo/ProviderProfilePage';
-import { mockProviders } from '../../data/mockProviders';
-import { Provider } from '../../types/provider';
-import { DetailedProvider } from '../../types/provider';
+import { mockProviders } from '../../../data/mockProviders';
+import { Provider } from '../../../types/provider';
+import { DetailedProvider } from '../../../types/provider';
 
 interface ProviderServicePageProps {
   onBack?: () => void;

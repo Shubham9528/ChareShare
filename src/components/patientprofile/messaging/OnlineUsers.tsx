@@ -1,5 +1,5 @@
 import React from 'react';
-import { onlineUsersData } from '../../data/messagesData';
+import { onlineUsersData } from '../../../data/messagesData';
 
 export const OnlineUsers: React.FC = () => {
   return (

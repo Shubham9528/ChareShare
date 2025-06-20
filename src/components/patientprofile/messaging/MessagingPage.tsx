@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { MessagingHeader } from './MessagingHeader';
 import { OnlineUsers } from './OnlineUsers';
 import { ChatList } from './ChatList';
 import { ChatView } from './ChatView';
 import { BottomNavigation } from '../category/BottomNavigation';
-import { messagesData } from '../../data/messagesData';
+import { messagesData } from '../../../data/messagesData';
 
 interface MessagingPageProps {
   onBack?: () => void;

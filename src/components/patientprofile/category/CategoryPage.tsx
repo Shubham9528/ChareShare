@@ -4,9 +4,9 @@ import { CategoryHeader } from './CategoryHeader';
 import { ProviderCard } from './ProviderCard';
 import { FloatingActionButton } from './FloatingActionButton';
 import { BottomNavigation } from './BottomNavigation';
-import { providersData } from '../../data/providersData';
-import { Provider } from '../../types/provider';
-import { useAuth } from '../../contexts/AuthContext';
+import { providersData } from '../../../data/providersData';
+import { Provider } from '../../../types/provider';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Info } from 'lucide-react';
 
 interface CategoryPageProps {

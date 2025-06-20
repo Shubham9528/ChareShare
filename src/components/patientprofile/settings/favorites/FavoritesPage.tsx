@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Heart, Star, MapPin, Clock, Search, Filter } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
-import { BottomNavigation } from '../../category/BottomNavigation';
+import { useAuth } from '../../../../contexts/AuthContext';
+// import { BottomNavigation } from '../../category/BottomNavigation';
 
 interface FavoriteProvider {
   id: string;

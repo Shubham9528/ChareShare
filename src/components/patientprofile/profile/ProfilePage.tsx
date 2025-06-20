@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Menu, Edit, Plus, ChevronRight, Copy, Share, Download, Upload, Camera, X, Check } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSection } from './QRCodeSection';
 import { ProfileSection } from './ProfileSection';
 import { EmergencyContact } from './EmergencyContact';
 import { MedicalItem } from './MedicalItem';
-import { BottomNavigation } from '../category/BottomNavigation';
+// import { BottomNavigation } from '../category/BottomNavigation';
 import { AddContactModal } from './AddContactModal';
 import { AddMedicalItemModal } from './AddMedicalItemModal';
 import { EditBloodTypeModal } from './EditBloodTypeModal';
