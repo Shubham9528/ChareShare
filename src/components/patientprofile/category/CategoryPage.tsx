@@ -8,6 +8,7 @@ import { providersData } from '../../../data/providersData';
 import { Provider } from '../../../types/provider';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Info } from 'lucide-react';
+import { useBookingFlow } from '../../../hooks/useBookingFlow';
 
 interface CategoryPageProps {
   onBack?: () => void;
@@ -19,6 +20,12 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('home');
+  const { setCategory, resetBookingFlow } = useBookingFlow();
+
+  // Reset booking flow when component mounts
+  React.useEffect(() => {
+    resetBookingFlow();
+  }, [resetBookingFlow]);
 
   const handleProviderSelect = (providerId: string) => {
     setSelectedProviders(prev => 
@@ -30,6 +37,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ onBack }) => {
 
   const handleProviderCardClick = (provider: Provider) => {
     const basePath = user ? '/patient/providers' : '/browse/providers';
+    setCategory(provider.category.toLowerCase());
     navigate(`${basePath}/${provider.category.toLowerCase()}`);
   };
 

@@ -5,6 +5,7 @@ import { DurationSelector } from './DurationSelector';
 import { PackageOptions } from './PackageOptions';
 // import { DetailedProvider } from '../../../types/provider';
 import { mockProviders } from '../../../../data/mockProviders';
+import { useBookingFlow } from '../../../../hooks/useBookingFlow';
 
 interface PackageSelectionPageProps {
   onBack?: () => void;
@@ -29,9 +30,10 @@ export const PackageSelectionPage: React.FC<PackageSelectionPageProps> = ({
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedProvider, setPackageDetails } = useBookingFlow();
   
   // Get provider data based on category or use first provider as fallback
-  const provider = mockProviders.find(p => 
+  const provider = selectedProvider || mockProviders.find(p => 
     p.specialization.toLowerCase() === category?.toLowerCase()
   ) || mockProviders[0];
 
@@ -84,15 +86,8 @@ export const PackageSelectionPage: React.FC<PackageSelectionPageProps> = ({
   const handleNext = () => {
     const selected = packageOptions.find(pkg => pkg.id === selectedPackage);
     if (selected) {
-      // Navigate to confirm details page with all necessary data
-      navigate(`/patient/providers/${category}/selectedprofile/selectappoinment/packages/bookappoinment`, {
-        state: {
-          provider,
-          selectedPackage: selected,
-          duration: selectedDuration,
-          appointmentData
-        }
-      });
+      setPackageDetails(selected, selectedDuration);
+      navigate(`/patient/providers/${category}/selectedprofile/selectappoinment/packages/bookappoinment`);
     }
   };
 

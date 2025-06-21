@@ -9,6 +9,7 @@ import { BookingConfirmPopup } from '../confirmpopup/BookingConfirmPopup';
 import { DetailedProvider } from '../../../../types/provider';
 import { PackageOption } from '../package/PackageSelectionPage';
 import { mockProviders } from '../../../../data/mockProviders';
+import { useBookingFlow } from '../../../../hooks/useBookingFlow';
 
 export interface PatientDetails {
   fullName: string;
@@ -25,30 +26,36 @@ export const ConfirmDetailsPage: React.FC<ConfirmDetailsPageProps> = ({ onBack }
   const location = useLocation();
   const navigate = useNavigate();
   const { category } = useParams<{ category: string }>();
+  const {
+    selectedProvider,
+    selectedPackage,
+    duration,
+    appointmentDate,
+    appointmentTime,
+    patientConcern,
+    selectedAddress,
+    resetBookingFlow,
+    isBookingComplete
+  } = useBookingFlow();
   
+  React.useEffect(() => {
+    // Redirect if booking data is incomplete
+    if (!isBookingComplete()) {
+      navigate('/patient/category');
+    }
+  }, [isBookingComplete, navigate]);
+
+  // If we don't have complete booking data, don't render the page
+  if (!selectedPackage || !selectedProvider) {
+    return null;
+  }
+
   // Get data from location state or use fallbacks
   const stateData = location.state || {};
-  const provider: DetailedProvider = stateData.provider || mockProviders.find(p => 
+  const provider = selectedProvider || mockProviders.find(p => 
     p.specialization.toLowerCase() === category?.toLowerCase()
   ) || mockProviders[0];
   
-  const selectedPackage: PackageOption = stateData.selectedPackage || {
-    id: 'messaging',
-    type: 'messaging',
-    title: 'Messaging',
-    description: 'Chat with Doctor',
-    price: 20,
-    icon: '💬'
-  };
-  
-  const duration: number = stateData.duration || 30;
-  const appointmentData = stateData.appointmentData || {
-    date: '14',
-    time: '06:30 - 07:00',
-    concern: 'Lorem Isum dolor',
-    address: '1'
-  };
-
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   
@@ -57,7 +64,7 @@ export const ConfirmDetailsPage: React.FC<ConfirmDetailsPageProps> = ({ onBack }
     fullName: 'Esther Howard',
     gender: 'Male',
     age: 26,
-    problem: appointmentData.concern || 'Lorem Isum dolor'
+    problem: patientConcern
   };
 
   // Format appointment date
@@ -82,21 +89,19 @@ export const ConfirmDetailsPage: React.FC<ConfirmDetailsPageProps> = ({ onBack }
       provider: provider.name,
       patient: patientDetails,
       appointment: {
-        date: formatAppointmentDate(appointmentData.date),
-        time: appointmentData.time,
+        date: appointmentDate,
+        time: appointmentTime,
         duration: duration,
-        type: selectedPackage.title
+        type: selectedPackage?.title
       },
       payment: {
         method: paymentMethod,
-        amount: selectedPackage.price,
-        total: selectedPackage.price
+        amount: selectedPackage?.price || 0,
+        total: selectedPackage?.price || 0
       }
     };
 
     console.log('Booking confirmed:', bookingData);
-    
-    // Show confirmation popup without any alerts
     setShowConfirmPopup(true);
   };
 
@@ -109,10 +114,8 @@ export const ConfirmDetailsPage: React.FC<ConfirmDetailsPageProps> = ({ onBack }
   };
 
   const handleDoneFromPopup = () => {
-    // Close the popup first
     setShowConfirmPopup(false);
-    
-    // Navigate directly to patient category page
+    resetBookingFlow();
     navigate('/patient/category');
   };
 
@@ -120,8 +123,8 @@ export const ConfirmDetailsPage: React.FC<ConfirmDetailsPageProps> = ({ onBack }
     bookingId: generateBookingId(),
     doctorName: provider.name,
     doctorImage: provider.image,
-    date: formatAppointmentDate(appointmentData.date),
-    time: appointmentData.time
+    date: appointmentDate,
+    time: appointmentTime
   };
 
   return (
@@ -146,8 +149,8 @@ export const ConfirmDetailsPage: React.FC<ConfirmDetailsPageProps> = ({ onBack }
           {/* Scheduled Appointment */}
           <ScheduledAppointmentSection
             appointmentData={{
-              date: formatAppointmentDate(appointmentData.date),
-              time: appointmentData.time,
+              date: formatAppointmentDate(appointmentDate),
+              time: appointmentTime,
               duration: duration,
               problem: patientDetails.problem
             }}

@@ -4,7 +4,7 @@ import { X, Upload, FileText, Camera, Check } from 'lucide-react';
 interface DocumentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (document: { name: string; type: string; file: File }) => void;
+  onUpload: (document: { name: string; type: string; file: File; uploadDate: string }) => void;
 }
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
@@ -17,6 +17,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const [uploadMethod, setUploadMethod] = useState<'file' | 'camera' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState('');
 
   const documentTypes = [
     'Medical History',
@@ -75,7 +76,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       onUpload({
         name: selectedFile.name,
         type: documentType,
-        file: selectedFile
+        file: selectedFile,
+        uploadDate: new Date().toISOString()
       });
       handleClose();
     }

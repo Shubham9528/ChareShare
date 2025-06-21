@@ -7,6 +7,7 @@ import { ProviderProfilePage } from './selectedproviderinfo/ProviderProfilePage'
 import { mockProviders } from '../../../data/mockProviders';
 import { Provider } from '../../../types/provider';
 import { DetailedProvider } from '../../../types/provider';
+import { useBookingFlow } from '../../../hooks/useBookingFlow';
 
 interface ProviderServicePageProps {
   onBack?: () => void;
@@ -27,6 +28,7 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [selectedDetailedProvider, setSelectedDetailedProvider] = useState<DetailedProvider | null>(null);
+  const { setProvider } = useBookingFlow();
 
   // Check if we're on the selected profile route
   const isSelectedProfileRoute = window.location.pathname.includes('/selectedprofile');
@@ -53,6 +55,7 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
 
   const handleProviderCardClick = (provider: DetailedProvider) => {
     setSelectedDetailedProvider(provider);
+    setProvider(provider);
     // Update URL to show selected profile
     const newUrl = window.location.pathname.replace(/\/providers\/[^/]+$/, `/providers/${category}/selectedprofile`);
     window.history.pushState({}, '', newUrl);

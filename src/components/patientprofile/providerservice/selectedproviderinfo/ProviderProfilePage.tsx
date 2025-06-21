@@ -5,6 +5,7 @@ import { ProviderProfileInfo } from './ProviderProfileInfo';
 import { ProviderProfileTabs } from './ProviderProfileTabs';
 import { ProviderProfileContent } from './ProviderProfileContent';
 import { DetailedProvider } from '../../../../types/provider';
+import { useBookingFlow } from '../../../../hooks/useBookingFlow';
 
 interface ProviderProfilePageProps {
   provider: DetailedProvider;
@@ -23,18 +24,19 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ProfileTab>('details');
   const [isFollowing, setIsFollowing] = useState(false);
+  const { setAppointmentType } = useBookingFlow();
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
   };
 
   const handleMessage = () => {
-    console.log('Message provider:', provider.name);
-    // Implement messaging functionality
+    setAppointmentType('message');
+    navigate(`/patient/providers/${category}/selectedprofile/selectappoinment`);
   };
 
   const handleBookAppointment = () => {
-    // Navigate to appointment booking page with the new route structure
+    setAppointmentType('in-person');
     navigate(`/patient/providers/${category}/selectedprofile/selectappoinment`);
   };
 

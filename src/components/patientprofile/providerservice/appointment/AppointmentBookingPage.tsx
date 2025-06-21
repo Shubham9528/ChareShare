@@ -8,6 +8,7 @@ import { DateTimeSelection } from './DateTimeSelection';
 import { ConcernInput } from './ConcernInput';
 // import { DetailedProvider } from '../../../types/provider';
 import { mockProviders } from '../../../../data/mockProviders';
+import { useBookingFlow } from '../../../../hooks/useBookingFlow';
 
 interface AppointmentBookingPageProps {
   onBack?: () => void;
@@ -34,9 +35,10 @@ export const AppointmentBookingPage: React.FC<AppointmentBookingPageProps> = ({
 }) => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const { selectedProvider, setAppointmentDetails } = useBookingFlow();
   
   // Get provider data based on category or use first provider as fallback
-  const provider = mockProviders.find(p => 
+  const provider = selectedProvider || mockProviders.find(p => 
     p.specialization.toLowerCase() === category?.toLowerCase()
   ) || mockProviders[0];
 
@@ -86,16 +88,20 @@ export const AppointmentBookingPage: React.FC<AppointmentBookingPageProps> = ({
 
   const handleMakeAppointment = () => {
     if (!selectedTime) {
-      // Show alert for time selection
       setShowAlert(true);
-      // Auto-hide alert after 3 seconds
       setTimeout(() => {
         setShowAlert(false);
       }, 3000);
       return;
     }
 
-    // Navigate to package selection page with the new route structure
+    setAppointmentDetails({
+      date: selectedDate,
+      time: selectedTime,
+      concern: concern,
+      address: selectedAddress
+    });
+
     navigate(`/patient/providers/${category}/selectedprofile/selectappoinment/package`);
   };
 

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Copy, Share, Download } from 'lucide-react';
 
-interface QRCodeSectionProps {
+export interface QRCodeSectionProps {
   onAction: (action: 'copy' | 'share' | 'download') => void;
+  onShare: () => void;
 }
 
-export const QRCodeSection: React.FC<QRCodeSectionProps> = ({ onAction }) => {
+export const QRCodeSection: React.FC<QRCodeSectionProps> = ({ onAction, onShare }) => {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       {/* QR Code */}
