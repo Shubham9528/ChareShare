@@ -4,7 +4,7 @@ import { ProviderProfileHeader } from './ProviderProfileHeader';
 import { ProviderProfileInfo } from './ProviderProfileInfo';
 import { ProviderProfileTabs } from './ProviderProfileTabs';
 import { ProviderProfileContent } from './ProviderProfileContent';
-import { DetailedProvider } from '../../../types/provider';
+import { DetailedProvider } from '../../../../types/provider';
 
 interface ProviderProfilePageProps {
   provider: DetailedProvider;

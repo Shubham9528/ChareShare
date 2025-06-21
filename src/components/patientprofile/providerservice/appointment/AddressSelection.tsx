@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
-import { DetailedProvider } from '../../../types/provider';
+import { DetailedProvider } from '../../../../types/provider';
 
 export interface Address {
   id: string;

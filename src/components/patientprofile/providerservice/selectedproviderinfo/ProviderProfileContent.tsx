@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Clock, Star, User } from 'lucide-react';
-import { DetailedProvider } from '../../../types/provider';
+import { DetailedProvider } from '../../../../types/provider';
 import { ProfileTab } from './ProviderProfilePage';
 
 interface ProviderProfileContentProps {

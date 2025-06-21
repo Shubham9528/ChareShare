@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, Clock } from 'lucide-react';
-import { DetailedProvider } from '../../../types/provider';
+import { DetailedProvider } from '../../../../types/provider';
 
 interface DoctorSummaryCardProps {
   provider: DetailedProvider;

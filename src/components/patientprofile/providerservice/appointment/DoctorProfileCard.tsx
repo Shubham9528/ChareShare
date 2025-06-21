@@ -1,5 +1,5 @@
 import React from 'react';
-import { DetailedProvider } from '../../../types/provider';
+import { DetailedProvider } from '../../../../types/provider';
 
 interface DoctorProfileCardProps {
   provider: DetailedProvider;
