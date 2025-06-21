@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Star, MapPin } from 'lucide-react';
-import { Booking } from '../../types/booking';
+import { Booking } from '../../../types/booking';
 import { AddReviewPopup } from './AddReviewPopup';
 
 interface BookingCardProps {
