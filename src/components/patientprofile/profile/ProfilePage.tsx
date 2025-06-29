@@ -20,6 +20,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [bloodType, setBloodType] = useState('A+');
   const [activeNavTab, setActiveNavTab] = useState('profile');
   
   const {
@@ -44,7 +45,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   const [showShareOptions, setShowShareOptions] = useState(false);
 
   // Data states
-  const [bloodType, setBloodType] = useState(patientProfile?.blood_type || 'A+');
   const [allergies, setAllergies] = useState([
     { id: '1', name: 'Penicillin', severity: 'severe' },
     { id: '2', name: 'Shellfish', severity: 'moderate' }
@@ -171,7 +171,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   };
 
   // Determine current tab based on route
-  useEffect(() => {
+  React.useEffect(() => {
     const path = location.pathname;
     if (path.includes('/search')) {
       setActiveNavTab('search');

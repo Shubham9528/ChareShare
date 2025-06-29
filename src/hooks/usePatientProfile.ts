@@ -27,13 +27,6 @@ export const usePatientProfile = () => {
       } catch (err) {
         console.error('Error fetching patient profile:', err);
         setError(err as Error);
-        
-        // Create a fallback profile if none exists
-        setPatientProfile({
-          id: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
       } finally {
         setLoading(false);
       }
@@ -55,7 +48,6 @@ export const usePatientProfile = () => {
         setEmergencyContacts(data);
       } catch (err) {
         console.error('Error fetching emergency contacts:', err);
-        setEmergencyContacts([]);
       }
     };
 
@@ -75,7 +67,6 @@ export const usePatientProfile = () => {
         setMedicalRecords(data);
       } catch (err) {
         console.error('Error fetching medical records:', err);
-        setMedicalRecords([]);
       }
     };
 
@@ -88,7 +79,7 @@ export const usePatientProfile = () => {
 
     try {
       const updatedProfile = await dbService.updatePatientProfile(user.id, updates);
-      setPatientProfile(prev => prev ? { ...prev, ...updatedProfile } : updatedProfile);
+      setPatientProfile(updatedProfile);
       return updatedProfile;
     } catch (err) {
       console.error('Error updating patient profile:', err);

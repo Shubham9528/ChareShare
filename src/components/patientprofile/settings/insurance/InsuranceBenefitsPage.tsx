@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Shield, Clock, Calendar, ChevronRight, Bell, User, Activity } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { BottomNavigation } from '../../category/BottomNavigation';
-import { usePatientProfile } from '../../../../hooks/usePatientProfile';
 
 interface BenefitItem {
   id: string;
@@ -28,14 +27,13 @@ export const InsuranceBenefitsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { patientProfile, loading } = usePatientProfile();
   const [activeNavTab, setActiveNavTab] = useState('profile');
 
   const handleBack = () => {
     navigate('/patient/profile/setting');
   };
 
-  // Mock insurance benefits data - in a real app, this would come from an API
+  // Mock insurance benefits data
   const overallBenefits = {
     total: 5000,
     used: 2500,
@@ -158,7 +156,7 @@ export const InsuranceBenefitsPage: React.FC = () => {
   };
 
   // Determine current tab based on route
-  useEffect(() => {
+  React.useEffect(() => {
     const path = location.pathname;
     if (path.includes('/search')) {
       setActiveNavTab('search');
@@ -187,14 +185,6 @@ export const InsuranceBenefitsPage: React.FC = () => {
     // Implement reminder settings
     console.log('Set benefit reminders');
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -361,10 +351,7 @@ export const InsuranceBenefitsPage: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNavigation 
-        activeTab={activeNavTab}
-        onTabChange={handleTabChange}
-      />
+      
     </div>
   );
 };
