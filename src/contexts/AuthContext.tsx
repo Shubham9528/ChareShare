@@ -389,20 +389,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('No user logged in') };
       }
 
-      if (!profile) {
-        return { error: new Error('No profile loaded') };
-      }
-
-      // Ensure user_type is preserved during updates
-      const safeUpdates = {
-        ...updates,
-        user_type: updates.user_type || profile.user_type, // Always preserve existing user_type if not explicitly updating it
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('Updating profile with safe updates:', safeUpdates);
-
-      const { error } = await dbService.updateUserProfile(user.id, safeUpdates);
+      const { error } = await dbService.updateUserProfile(user.id, updates);
 
       if (error) {
         console.error('AuthProvider: Profile update error:', error);

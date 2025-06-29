@@ -1,26 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Copy, Share, Download, X, Check } from 'lucide-react';
-
-interface Provider {
-  id: string;
-  name: string;
-  specialization: string;
-  experience: string;
-  avatar: string;
-  stats: {
-    articles: number;
-    followers: number;
-    reviews: number;
-  };
-}
+import { DetailedProvider } from '../../types/provider';
 
 interface ProviderProfileInfoProps {
-  provider: Provider;
+  provider: DetailedProvider;
+  isFollowing: boolean;
+  onFollow: () => void;
+  onMessage: () => void;
 }
 
 export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
-  provider
+  provider,
+  isFollowing,
+  onFollow,
+  onMessage
 }) => {
   const navigate = useNavigate();
   const [showSharePopup, setShowSharePopup] = useState(false);
@@ -62,6 +57,9 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
       case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileUrl)}`;
         break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`;
+        break;
       case 'email':
         shareUrl = `mailto:?subject=${encodeURIComponent(`Check out ${provider.name}`)}&body=${encodeURIComponent(`${shareText}\n\n${profileUrl}`)}`;
         break;
@@ -97,7 +95,7 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
   };
 
   const handleEdit = () => {
-    navigate('/provider/setting/editprofile');
+    navigate('/provider/setting');
   };
 
   return (
@@ -107,7 +105,7 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
         <div className="flex flex-col items-center space-y-4">
           <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
             <img
-              src={provider.avatar}
+              src="https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=200"
               alt={provider.name}
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -134,7 +132,7 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
               {provider.specialization}
             </p>
             <p className="text-gray-500 text-sm">
-              {provider.experience}
+              +{provider.yearsOfExperience} Year Experience
             </p>
           </div>
         </div>
@@ -142,15 +140,15 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
         {/* Stats - Fixed visibility with proper styling */}
         <div className="flex justify-around py-6 bg-white rounded-2xl shadow-sm border border-gray-100">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{provider.stats.articles}</div>
+            <div className="text-2xl font-bold text-gray-900 mb-1">275</div>
             <div className="text-gray-600 text-sm font-medium">Articles</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{provider.stats.followers}</div>
+            <div className="text-2xl font-bold text-gray-900 mb-1">234</div>
             <div className="text-gray-600 text-sm font-medium">Followers</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{provider.stats.reviews}</div>
+            <div className="text-2xl font-bold text-gray-900 mb-1">4.9</div>
             <div className="text-gray-600 text-sm font-medium">Reviews</div>
           </div>
         </div>
@@ -236,7 +234,7 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
                     <rect x="100" y="120" width="20" height="20" fill="#3B82F6" />
                     <rect x="120" y="120" width="20" height="20" fill="#3B82F6" />
                     
-                    {/* Add more QR pattern elements */}
+                    {/* Additional QR pattern elements */}
                     <rect x="160" y="0" width="20" height="20" fill="#3B82F6" />
                     <rect x="180" y="0" width="20" height="20" fill="#3B82F6" />
                     <rect x="160" y="20" width="20" height="20" fill="#3B82F6" />
@@ -289,7 +287,7 @@ export const ProviderProfileInfo: React.FC<ProviderProfileInfoProps> = ({
               </button>
 
               <button
-                onClick={() => handleShareToSocial('whatsapp')}
+                onClick={() => setShowSharePopup(true)}
                 className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-white hover:bg-opacity-10 transition-colors duration-200 text-white"
               >
                 <div className="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center">

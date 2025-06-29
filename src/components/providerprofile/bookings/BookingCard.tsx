@@ -12,15 +12,9 @@ interface Booking {
 
 interface BookingCardProps {
   booking: Booking;
-  onCancel?: (id: string) => void;
-  onComplete?: (id: string) => void;
 }
 
-export const BookingCard: React.FC<BookingCardProps> = ({ 
-  booking,
-  onCancel,
-  onComplete
-}) => {
+export const BookingCard: React.FC<BookingCardProps> = ({ booking }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming':
@@ -77,27 +71,6 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           </p>
         </div>
       </div>
-
-      {/* Action Buttons - Only show for upcoming appointments */}
-      {booking.status === 'upcoming' && onCancel && onComplete && (
-        <div className="flex space-x-3">
-          <button
-            onClick={() => onCancel(booking.id)}
-            className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onComplete(booking.id)}
-            className="flex-1 py-2 px-4 text-white font-medium rounded-xl hover:opacity-90 transition-all duration-200"
-            style={{
-              background: 'linear-gradient(90deg, #3B82F6 0%, #234C90 100%)'
-            }}
-          >
-            Complete
-          </button>
-        </div>
-      )}
     </div>
   );
 };
