@@ -101,18 +101,18 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
         provider={{
           id: providerToShow.id,
           name: providerToShow.user_profile?.full_name || 'Provider Name',
-          specialization: providerToShow.specialization,
+          specialization: providerToShow.specialization || 'Healthcare Provider',
           description: providerToShow.bio || "Experienced healthcare provider dedicated to patient care.",
           image: providerToShow.user_profile?.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
-          rating: providerToShow.rating,
-          reviewCount: providerToShow.review_count,
+          rating: providerToShow.rating || 4.5,
+          reviewCount: providerToShow.review_count || 0,
           address: providerToShow.clinic_address || '123 Medical Center, Downtown',
           distance: '2.5km', // Would need geolocation
           estimatedTime: '20 min', // Would need routing
           availability: 'Mon-Fri',
           hours: '9am - 5pm',
-          yearsOfExperience: providerToShow.years_of_experience,
-          consultationFee: providerToShow.consultation_fee
+          yearsOfExperience: providerToShow.years_of_experience || 0,
+          consultationFee: providerToShow.consultation_fee || 0
         }}
         onBack={handleBackFromProfile}
         onNavigateToCategory={onNavigateToCategory}
@@ -145,18 +145,18 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
             providers={providers.map(p => ({
               id: p.id,
               name: p.user_profile?.full_name || 'Provider Name',
-              specialization: p.specialization,
+              specialization: p.specialization || 'Healthcare Provider',
               description: p.bio || "Experienced healthcare provider dedicated to patient care.",
               image: p.user_profile?.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
-              rating: p.rating,
-              reviewCount: p.review_count,
+              rating: p.rating || 4.5,
+              reviewCount: p.review_count || 0,
               address: p.clinic_address || '123 Medical Center, Downtown',
               distance: '2.5km', // Would need geolocation
               estimatedTime: '20 min', // Would need routing
               availability: 'Mon-Fri',
               hours: '9am - 5pm',
-              yearsOfExperience: p.years_of_experience,
-              consultationFee: p.consultation_fee
+              yearsOfExperience: p.years_of_experience || 0,
+              consultationFee: p.consultation_fee || 0
             }))}
             sortBy={sortBy}
             favorites={favorites}

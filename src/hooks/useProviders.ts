@@ -20,11 +20,20 @@ export const useProviders = (initialCategory?: string) => {
       try {
         setLoading(true);
         const data = await dbService.getAllProviders(category, searchTerm);
-        setProviders(data);
+        
+        // Ensure data is valid
+        if (data && Array.isArray(data)) {
+          setProviders(data);
+        } else {
+          console.error('Invalid provider data received:', data);
+          setProviders([]);
+        }
+        
         setError(null);
       } catch (err) {
         console.error('Error fetching providers:', err);
         setError(err as Error);
+        setProviders([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -43,10 +52,15 @@ export const useProviders = (initialCategory?: string) => {
 
       try {
         const data = await dbService.getFavoriteProviders(user.id);
-        const favoriteIds = data.map(fav => fav.provider_id);
-        setFavorites(favoriteIds);
+        if (data && Array.isArray(data)) {
+          const favoriteIds = data.map(fav => fav.provider_id);
+          setFavorites(favoriteIds);
+        } else {
+          setFavorites([]);
+        }
       } catch (err) {
         console.error('Error fetching favorites:', err);
+        setFavorites([]);
       }
     };
 
@@ -76,9 +90,9 @@ export const useProviders = (initialCategory?: string) => {
   const sortedProviders = [...providers].sort((a, b) => {
     switch (sortBy) {
       case 'rating':
-        return b.rating - a.rating;
+        return (b.rating || 0) - (a.rating || 0);
       case 'price':
-        return a.consultation_fee - b.consultation_fee;
+        return (a.consultation_fee || 0) - (b.consultation_fee || 0);
       // Note: distance would require geolocation which we don't have
       default:
         return 0;
