@@ -30,6 +30,8 @@ export const useProviderProfile = (providerId?: string) => {
       } catch (err) {
         console.error('Error fetching provider profile:', err);
         setError(err as Error);
+        // Set providerProfile to null if not found
+        setProviderProfile(null);
       } finally {
         setLoading(false);
       }
@@ -86,7 +88,15 @@ export const useProviderProfile = (providerId?: string) => {
     }
 
     try {
-      const updatedProfile = await dbService.updateProviderProfile(targetId, updates);
+      let updatedProfile;
+      
+      // If no provider profile exists, create one first
+      if (!providerProfile) {
+        updatedProfile = await dbService.addProviderProfile(targetId, updates);
+      } else {
+        updatedProfile = await dbService.updateProviderProfile(targetId, updates);
+      }
+      
       setProviderProfile(prev => prev ? { ...prev, ...updatedProfile } : updatedProfile);
       return updatedProfile;
     } catch (err) {
