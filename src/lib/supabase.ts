@@ -206,10 +206,10 @@ export const dbService = {
   },
 
   async updateUserProfile(userId: string, updates: Partial<UserProfile>) {
+    // Use upsert to handle both insert and update scenarios
     const { data, error } = await supabase
       .from('user_profiles')
-      .update(updates)
-      .eq('id', userId)
+      .upsert({ id: userId, ...updates }, { onConflict: 'id' })
       .select()
       .single();
     
@@ -245,9 +245,10 @@ export const dbService = {
       ...profileData
     };
 
+    // Use upsert to handle both insert and update scenarios
     const { data, error } = await supabase
       .from('providers')
-      .insert(defaultData)
+      .upsert(defaultData, { onConflict: 'id' })
       .select()
       .single();
     
@@ -256,10 +257,10 @@ export const dbService = {
   },
 
   async updateProviderProfile(providerId: string, updates: Partial<ProviderProfile>) {
+    // Use upsert to handle cases where the provider profile might not exist yet
     const { data, error } = await supabase
       .from('providers')
-      .update(updates)
-      .eq('id', providerId)
+      .upsert({ id: providerId, ...updates }, { onConflict: 'id' })
       .select()
       .single();
     
