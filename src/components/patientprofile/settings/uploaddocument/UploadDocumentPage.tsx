@@ -185,7 +185,7 @@ export const UploadDocumentPage: React.FC = () => {
     }
   };
 
-  const handleFileUpload = () => {
+  const triggerFileInput = () => {
     setUploadMethod('file');
     if (fileInputRef.current) {
       fileInputRef.current.removeAttribute('capture');
@@ -351,7 +351,7 @@ export const UploadDocumentPage: React.FC = () => {
           </button>
           
           <button
-            onClick={handleFileUpload}
+            onClick={triggerFileInput}
             className="flex items-center justify-center space-x-3 py-4 px-6 border-2 border-blue-500 text-blue-600 font-semibold rounded-2xl hover:bg-blue-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <Folder className="w-5 h-5" />
