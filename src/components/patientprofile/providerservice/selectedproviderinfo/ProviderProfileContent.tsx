@@ -6,11 +6,15 @@ import { ProfileTab } from './ProviderProfilePage';
 interface ProviderProfileContentProps {
   provider: DetailedProvider;
   activeTab: ProfileTab;
+  reviews?: any[];
+  loading?: boolean;
 }
 
 export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
   provider,
-  activeTab
+  activeTab,
+  reviews = [],
+  loading = false
 }) => {
   if (activeTab === 'details') {
     return (
@@ -19,10 +23,7 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3>
           <p className="text-gray-600 leading-relaxed">
-            "I'm a dentist with {provider.yearsOfExperience} years of experience, dedicated to 
-            providing compassionate and effective dental care. I specialize in preventive, 
-            restorative, and cosmetic treatments, helping patients achieve healthy and 
-            confident smiles."
+            "{provider.description || `I'm a ${provider.specialization} with ${provider.yearsOfExperience} years of experience, dedicated to providing compassionate and effective care.`}"
           </p>
         </div>
 
@@ -30,7 +31,9 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Education</h3>
           <p className="text-gray-600">
-            Doctor of Dental Surgery (DDS) - in the USA
+            {provider.specialization === 'Dentist' 
+              ? 'Doctor of Dental Surgery (DDS) - in the USA' 
+              : `${provider.specialization} degree from accredited university`}
           </p>
         </div>
 
@@ -84,33 +87,68 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
 
           {/* Reviews */}
           <div className="space-y-4">
-            {/* Anonymous Review */}
-            <div className="border-l-4 border-blue-600 pl-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-gray-500" />
-                </div>
-                <span className="font-medium text-gray-900">Anonymous feedback</span>
+            {loading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Very competent specialist. I am very happy that there are such professional doctors. 
-                My baby is in safe hands. My child's health is above all.
-              </p>
-            </div>
+            ) : reviews.length > 0 ? (
+              reviews.slice(0, 2).map((review, index) => (
+                <div key={review.id || index} className={`border-l-4 ${index % 2 === 0 ? 'border-blue-600' : 'border-green-600'} pl-4`}>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className={`w-8 h-8 ${index % 2 === 0 ? 'bg-gray-200' : 'bg-gradient-to-br from-purple-500 to-pink-500'} rounded-full flex items-center justify-center`}>
+                      {index % 2 === 0 ? (
+                        <User className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <span className="text-white text-sm font-semibold">
+                          {review.patient?.user_profile?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'A'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-medium text-gray-900">
+                      {review.patient?.user_profile?.full_name || 'Anonymous feedback'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {review.comment || "Very competent specialist. I am very happy with the service provided."}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500">No reviews yet</p>
+              </div>
+            )}
 
-            {/* Named Review */}
-            <div className="border-l-4 border-green-600 pl-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">EL</span>
+            {/* Default reviews if none from database */}
+            {!loading && reviews.length === 0 && (
+              <>
+                <div className="border-l-4 border-blue-600 pl-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-gray-500" />
+                    </div>
+                    <span className="font-medium text-gray-900">Anonymous feedback</span>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Very competent specialist. I am very happy that there are such professional doctors. 
+                    My baby is in safe hands. My child's health is above all.
+                  </p>
                 </div>
-                <span className="font-medium text-gray-900">Erika Lhee</span>
-              </div>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Just a wonderful doctor, very happy that she is leading our child, competent, 
-                very smart, nice.
-              </p>
-            </div>
+
+                <div className="border-l-4 border-green-600 pl-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-semibold">EL</span>
+                    </div>
+                    <span className="font-medium text-gray-900">Erika Lhee</span>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Just a wonderful doctor, very happy that she is leading our child, competent, 
+                    very smart, nice.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -119,15 +157,17 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
 
   if (activeTab === 'posts') {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
+      <div className="relative">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
+            <p className="text-gray-600">Posts from {provider.name} will appear here</p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
-          <p className="text-gray-600">Posts from {provider.name} will appear here</p>
         </div>
       </div>
     );

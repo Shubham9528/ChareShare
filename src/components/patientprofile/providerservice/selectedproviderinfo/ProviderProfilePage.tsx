@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ProviderProfileHeader } from './ProviderProfileHeader';
 import { ProviderProfileInfo } from './ProviderProfileInfo';
 import { ProviderProfileTabs } from './ProviderProfileTabs';
 import { ProviderProfileContent } from './ProviderProfileContent';
 import { DetailedProvider } from '../../../types/provider';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { dbService } from '../../../../lib/supabase';
 
 interface ProviderProfilePageProps {
   provider: DetailedProvider;
@@ -22,12 +24,34 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>('details');
   const [isFollowing, setIsFollowing] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Check if we have a provider from location state
   const locationProvider = location.state?.provider;
   const providerToUse = locationProvider || provider;
+
+  // Fetch provider reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!providerToUse?.id) return;
+      
+      try {
+        setLoading(true);
+        const data = await dbService.getProviderReviews(providerToUse.id);
+        setReviews(data || []);
+      } catch (error) {
+        console.error('Failed to fetch reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [providerToUse?.id]);
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
@@ -36,6 +60,11 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
   const handleMessage = () => {
     console.log('Message provider:', providerToUse.name);
     // Implement messaging functionality
+    if (user) {
+      navigate('/patient/messages');
+    } else {
+      navigate('/login-selection');
+    }
   };
 
   const handleBookAppointment = () => {
@@ -70,6 +99,8 @@ export const ProviderProfilePage: React.FC<ProviderProfilePageProps> = ({
         <ProviderProfileContent 
           provider={providerToUse}
           activeTab={activeTab}
+          reviews={reviews}
+          loading={loading}
         />
       </div>
 
