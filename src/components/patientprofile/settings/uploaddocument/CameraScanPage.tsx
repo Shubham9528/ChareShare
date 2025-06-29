@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Trash2, RotateCcw, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { usePatientProfile } from '../../../../hooks/usePatientProfile';
+import { useMedicalRecords } from '../../../../hooks/useMedicalRecords';
 import { dbService } from '../../../../lib/supabase';
 
 export const CameraScanPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addMedicalRecord } = usePatientProfile();
+  const { addMedicalRecord } = useMedicalRecords();
   const [scanProgress, setScanProgress] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);

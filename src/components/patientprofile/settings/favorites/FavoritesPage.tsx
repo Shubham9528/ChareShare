@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Heart, Star, MapPin, Clock, Search, Filter } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { dbService } from '../../../../lib/supabase';
+import { useFavorites } from '../../../../hooks/useFavorites';
+import { BottomNavigation } from '../../category/BottomNavigation';
 
 export const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,49 +12,12 @@ export const FavoritesPage: React.FC = () => {
   const [activeNavTab, setActiveNavTab] = useState('profile');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'distance'>('default');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [favoriteProviders, setFavoriteProviders] = useState<any[]>([]);
-
-  // Fetch favorite providers
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (!user) {
-        setFavoriteProviders([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const data = await dbService.getFavoriteProviders(user.id);
-        
-        // Transform data to match our UI needs
-        const providers = data.map(item => ({
-          id: item.provider_id,
-          name: item.provider?.user_profile?.full_name || 'Provider Name',
-          specialization: item.provider?.specialization || 'Healthcare Provider',
-          image: item.provider?.user_profile?.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
-          rating: item.provider?.rating || 4.5,
-          reviewCount: item.provider?.review_count || 0,
-          address: item.provider?.clinic_address || '123 Medical Center, Downtown',
-          distance: '2.5km', // Would need geolocation
-          estimatedTime: '20 min', // Would need routing
-          availability: 'Mon-Fri',
-          hours: '9am - 5pm',
-          isFavorite: true
-        }));
-        
-        setFavoriteProviders(providers);
-      } catch (err) {
-        console.error('Error fetching favorites:', err);
-        setFavoriteProviders([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFavorites();
-  }, [user]);
+  
+  const { 
+    favoriteProviders, 
+    loading, 
+    removeFavorite 
+  } = useFavorites();
 
   const handleBack = () => {
     navigate('/patient/profile/setting');
@@ -61,8 +25,7 @@ export const FavoritesPage: React.FC = () => {
 
   const handleToggleFavorite = async (providerId: string) => {
     try {
-      await dbService.removeFavorite(user!.id, providerId);
-      setFavoriteProviders(prev => prev.filter(provider => provider.id !== providerId));
+      await removeFavorite(providerId);
     } catch (error) {
       console.error('Failed to remove favorite:', error);
       alert('Failed to remove from favorites. Please try again.');
@@ -143,7 +106,7 @@ export const FavoritesPage: React.FC = () => {
   const sortedProviders = [...filteredProviders].sort((a, b) => {
     switch (sortBy) {
       case 'rating':
-        return b.rating - a.rating;
+        return (b.rating || 0) - (a.rating || 0);
       case 'distance':
         return parseFloat(a.distance) - parseFloat(b.distance);
       default:
@@ -331,6 +294,12 @@ export const FavoritesPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation 
+        activeTab={activeNavTab}
+        onTabChange={handleTabChange}
+      />
     </div>
   );
 };

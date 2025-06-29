@@ -11,6 +11,9 @@ import { AddMedicalItemModal } from './AddMedicalItemModal';
 import { EditBloodTypeModal } from './EditBloodTypeModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { usePatientProfile } from '../../../hooks/usePatientProfile';
+import { useEmergencyContacts } from '../../../hooks/useEmergencyContacts';
+import { useMedicalRecords } from '../../../hooks/useMedicalRecords';
+import { dbService } from '../../../lib/supabase';
 
 interface ProfilePageProps {
   onBack?: () => void;
@@ -24,18 +27,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   
   const {
     patientProfile,
-    emergencyContacts,
-    medicalRecords,
-    loading,
-    updatePatientProfile,
-    addEmergencyContact,
-    deleteEmergencyContact,
-    addMedicalRecord,
-    deleteMedicalRecord
+    loading: profileLoading,
+    updatePatientProfile
   } = usePatientProfile();
   
+  const {
+    emergencyContacts,
+    loading: contactsLoading,
+    addEmergencyContact,
+    deleteEmergencyContact
+  } = useEmergencyContacts();
+  
+  const {
+    medicalRecords,
+    loading: recordsLoading,
+    addMedicalRecord,
+    deleteMedicalRecord
+  } = useMedicalRecords();
+  
   // State for UI elements
-  const [bloodType, setBloodType] = useState('A+');
+  const [bloodType, setBloodType] = useState(patientProfile?.blood_type || 'A+');
   
   // Modal states
   const [showAddContact, setShowAddContact] = useState(false);
@@ -47,25 +58,58 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   const [showShareOptions, setShowShareOptions] = useState(false);
 
   // Data states
-  const [allergies, setAllergies] = useState([
-    { id: '1', name: 'Penicillin', severity: 'severe' },
-    { id: '2', name: 'Shellfish', severity: 'moderate' }
-  ]);
-
-  const [medications, setMedications] = useState([
-    { id: '1', name: 'Lisinopril', dosage: '10mg daily', frequency: 'Once daily' },
-    { id: '2', name: 'Metformin', dosage: '500mg twice daily', frequency: 'Twice daily' }
-  ]);
-
-  const [medicalConditions, setMedicalConditions] = useState([
-    { id: '1', name: 'Hypertension', type: 'chronic' },
-    { id: '2', name: 'Type 2 Diabetes', type: 'chronic' }
-  ]);
+  const [allergies, setAllergies] = useState<any[]>([]);
+  const [medications, setMedications] = useState<any[]>([]);
+  const [medicalConditions, setMedicalConditions] = useState<any[]>([]);
 
   // Update blood type from patient profile
   useEffect(() => {
     if (patientProfile?.blood_type) {
       setBloodType(patientProfile.blood_type);
+    }
+  }, [patientProfile]);
+
+  // Parse medical history and allergies from patient profile
+  useEffect(() => {
+    if (patientProfile) {
+      // Parse allergies
+      if (patientProfile.allergies) {
+        try {
+          const parsedAllergies = JSON.parse(patientProfile.allergies);
+          if (Array.isArray(parsedAllergies)) {
+            setAllergies(parsedAllergies);
+          }
+        } catch (e) {
+          console.error('Failed to parse allergies:', e);
+          // If allergies is a string, create a single allergy item
+          setAllergies([{ 
+            id: '1', 
+            name: patientProfile.allergies, 
+            severity: 'moderate' 
+          }]);
+        }
+      }
+
+      // Parse medical history for conditions and medications
+      if (patientProfile.medical_history) {
+        try {
+          const parsedHistory = JSON.parse(patientProfile.medical_history);
+          if (parsedHistory.conditions && Array.isArray(parsedHistory.conditions)) {
+            setMedicalConditions(parsedHistory.conditions);
+          }
+          if (parsedHistory.medications && Array.isArray(parsedHistory.medications)) {
+            setMedications(parsedHistory.medications);
+          }
+        } catch (e) {
+          console.error('Failed to parse medical history:', e);
+          // If medical_history is a string, create a single condition
+          setMedicalConditions([{ 
+            id: '1', 
+            name: patientProfile.medical_history, 
+            type: 'chronic' 
+          }]);
+        }
+      }
     }
   }, [patientProfile]);
 
@@ -124,7 +168,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   };
 
   const handleMenuClick = () => {
-    
+    navigate('/patient/profile/setting');
   };
 
   const handleBack = () => {
@@ -199,31 +243,84 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     }
   };
 
-  const handleAddAllergy = (allergy: { name: string; severity: string }) => {
-    const newAllergy = {
-      id: Date.now().toString(),
-      ...allergy
-    };
-    setAllergies(prev => [...prev, newAllergy]);
-    setShowAddAllergy(false);
+  const handleAddAllergy = async (allergy: { name: string; severity: string }) => {
+    try {
+      const newAllergy = {
+        id: Date.now().toString(),
+        ...allergy
+      };
+      
+      const updatedAllergies = [...allergies, newAllergy];
+      setAllergies(updatedAllergies);
+      
+      // Update patient profile
+      await updatePatientProfile({
+        allergies: JSON.stringify(updatedAllergies)
+      });
+      
+      setShowAddAllergy(false);
+    } catch (error) {
+      console.error('Failed to add allergy:', error);
+      alert('Failed to add allergy. Please try again.');
+    }
   };
 
-  const handleAddMedication = (medication: { name: string; dosage: string; frequency: string }) => {
-    const newMedication = {
-      id: Date.now().toString(),
-      ...medication
-    };
-    setMedications(prev => [...prev, newMedication]);
-    setShowAddMedication(false);
+  const handleAddMedication = async (medication: { name: string; dosage: string; frequency: string }) => {
+    try {
+      const newMedication = {
+        id: Date.now().toString(),
+        ...medication
+      };
+      
+      const updatedMedications = [...medications, newMedication];
+      setMedications(updatedMedications);
+      
+      // Update patient profile
+      const currentHistory = patientProfile?.medical_history ? JSON.parse(patientProfile.medical_history) : {};
+      const updatedHistory = {
+        ...currentHistory,
+        medications: updatedMedications,
+        conditions: medicalConditions
+      };
+      
+      await updatePatientProfile({
+        medical_history: JSON.stringify(updatedHistory)
+      });
+      
+      setShowAddMedication(false);
+    } catch (error) {
+      console.error('Failed to add medication:', error);
+      alert('Failed to add medication. Please try again.');
+    }
   };
 
-  const handleAddCondition = (condition: { name: string; type: string }) => {
-    const newCondition = {
-      id: Date.now().toString(),
-      ...condition
-    };
-    setMedicalConditions(prev => [...prev, newCondition]);
-    setShowAddCondition(false);
+  const handleAddCondition = async (condition: { name: string; type: string }) => {
+    try {
+      const newCondition = {
+        id: Date.now().toString(),
+        ...condition
+      };
+      
+      const updatedConditions = [...medicalConditions, newCondition];
+      setMedicalConditions(updatedConditions);
+      
+      // Update patient profile
+      const currentHistory = patientProfile?.medical_history ? JSON.parse(patientProfile.medical_history) : {};
+      const updatedHistory = {
+        ...currentHistory,
+        conditions: updatedConditions,
+        medications: medications
+      };
+      
+      await updatePatientProfile({
+        medical_history: JSON.stringify(updatedHistory)
+      });
+      
+      setShowAddCondition(false);
+    } catch (error) {
+      console.error('Failed to add condition:', error);
+      alert('Failed to add condition. Please try again.');
+    }
   };
 
   const handleUpdateBloodType = async (newBloodType: string) => {
@@ -294,19 +391,78 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     }
   };
 
+  const handleDeleteAllergy = async (id: string) => {
+    try {
+      const updatedAllergies = allergies.filter(item => item.id !== id);
+      setAllergies(updatedAllergies);
+      
+      // Update patient profile
+      await updatePatientProfile({
+        allergies: JSON.stringify(updatedAllergies)
+      });
+    } catch (error) {
+      console.error('Failed to delete allergy:', error);
+      alert('Failed to delete allergy. Please try again.');
+    }
+  };
+
+  const handleDeleteMedication = async (id: string) => {
+    try {
+      const updatedMedications = medications.filter(item => item.id !== id);
+      setMedications(updatedMedications);
+      
+      // Update patient profile
+      const currentHistory = patientProfile?.medical_history ? JSON.parse(patientProfile.medical_history) : {};
+      const updatedHistory = {
+        ...currentHistory,
+        medications: updatedMedications,
+        conditions: medicalConditions
+      };
+      
+      await updatePatientProfile({
+        medical_history: JSON.stringify(updatedHistory)
+      });
+    } catch (error) {
+      console.error('Failed to delete medication:', error);
+      alert('Failed to delete medication. Please try again.');
+    }
+  };
+
+  const handleDeleteCondition = async (id: string) => {
+    try {
+      const updatedConditions = medicalConditions.filter(item => item.id !== id);
+      setMedicalConditions(updatedConditions);
+      
+      // Update patient profile
+      const currentHistory = patientProfile?.medical_history ? JSON.parse(patientProfile.medical_history) : {};
+      const updatedHistory = {
+        ...currentHistory,
+        conditions: updatedConditions,
+        medications: medications
+      };
+      
+      await updatePatientProfile({
+        medical_history: JSON.stringify(updatedHistory)
+      });
+    } catch (error) {
+      console.error('Failed to delete condition:', error);
+      alert('Failed to delete condition. Please try again.');
+    }
+  };
+
   const handleDeleteItem = (section: string, id: string) => {
     switch (section) {
       case 'contact':
         handleDeleteEmergencyContact(id);
         break;
       case 'allergy':
-        setAllergies(prev => prev.filter(item => item.id !== id));
+        handleDeleteAllergy(id);
         break;
       case 'medication':
-        setMedications(prev => prev.filter(item => item.id !== id));
+        handleDeleteMedication(id);
         break;
       case 'condition':
-        setMedicalConditions(prev => prev.filter(item => item.id !== id));
+        handleDeleteCondition(id);
         break;
       case 'document':
         deleteMedicalRecord(id).catch(err => {
@@ -317,7 +473,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     }
   };
 
-  if (loading) {
+  if (profileLoading || contactsLoading || recordsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

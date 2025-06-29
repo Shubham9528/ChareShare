@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, FileText, Camera, Image, Folder, X, Check, AlertCirc
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { usePatientProfile } from '../../../../hooks/usePatientProfile';
+import { useMedicalRecords } from '../../../../hooks/useMedicalRecords';
 import { dbService } from '../../../../lib/supabase';
 
 interface UploadedFile {
@@ -19,7 +20,7 @@ interface UploadedFile {
 export const UploadDocumentPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { medicalRecords, addMedicalRecord, deleteMedicalRecord } = usePatientProfile();
+  const { medicalRecords, addMedicalRecord, deleteMedicalRecord } = useMedicalRecords();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
