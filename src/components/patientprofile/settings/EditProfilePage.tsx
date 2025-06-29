@@ -1,33 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Camera, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import { usePatientProfile } from '../../../hooks/usePatientProfile';
+import { dbService } from '../../../lib/supabase';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
+  const { patientProfile, loading, updatePatientProfile } = usePatientProfile();
   
   const [formData, setFormData] = useState({
-    name: profile?.full_name || 'Sarah Wilson',
-    username: 'sarah.wilson',
+    name: '',
+    username: '',
     age: '',
-    gender: 'Male'
+    gender: 'Male',
+    phone: '',
+    email: '',
+    dateOfBirth: '',
+    emergencyContact: '',
+    address: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load profile data when component mounts
+  useEffect(() => {
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        name: profile.full_name || '',
+        username: profile.email?.split('@')[0] || '',
+        email: profile.email || '',
+        phone: profile.phone || ''
+      }));
+    }
+    
+    if (patientProfile) {
+      const dob = patientProfile.date_of_birth ? new Date(patientProfile.date_of_birth).toISOString().split('T')[0] : '';
+      
+      setFormData(prev => ({
+        ...prev,
+        gender: patientProfile.gender || 'Male',
+        dateOfBirth: dob
+      }));
+      
+      // Calculate age if date of birth is available
+      if (dob) {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          age: age.toString()
+        }));
+      }
+    }
+  }, [profile, patientProfile]);
 
   const handleBack = () => {
     navigate('/patient/profile/setting');
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     
-    // Simulate save operation
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Update user profile
+      await updateProfile({
+        full_name: formData.name,
+        phone: formData.phone
+      });
+      
+      // Update patient profile
+      await updatePatientProfile({
+        gender: formData.gender.toLowerCase() as 'male' | 'female' | 'other',
+        date_of_birth: formData.dateOfBirth || undefined
+      });
+      
       navigate('/patient/profile/setting');
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -37,10 +102,36 @@ export const EditProfilePage: React.FC = () => {
     }));
   };
 
-  const handlePhotoChange = () => {
-    // Implement photo change functionality
-    console.log('Change profile photo');
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !user) return;
+    
+    const file = e.target.files[0];
+    
+    try {
+      // Upload to storage
+      const path = `avatars/${user.id}/${Date.now()}_${file.name}`;
+      await dbService.uploadFile('profiles', path, file);
+      
+      // Get public URL
+      const avatarUrl = dbService.getFileUrl('profiles', path);
+      
+      // Update profile
+      await updateProfile({ avatar_url: avatarUrl });
+      
+      alert('Profile photo updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile photo:', error);
+      alert('Failed to update profile photo. Please try again.');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,7 +168,7 @@ export const EditProfilePage: React.FC = () => {
           <div className="relative">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
               <img
-                src="https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=200"
+                src={profile?.avatar_url || "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=200"}
                 alt="Profile"
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -87,7 +178,7 @@ export const EditProfilePage: React.FC = () => {
                     parent.style.background = 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)';
                     parent.innerHTML = `
                       <div class="w-full h-full flex items-center justify-center text-white font-semibold text-xl">
-                        SW
+                        ${formData.name.split(' ').map(n => n[0]).join('')}
                       </div>
                     `;
                   }
@@ -96,24 +187,30 @@ export const EditProfilePage: React.FC = () => {
             </div>
             
             {/* Camera Button */}
-            <button
-              onClick={handlePhotoChange}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
+            <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
               <Camera className="w-4 h-4" />
-            </button>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handlePhotoChange}
+              />
+            </label>
           </div>
           
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-1">
               {formData.name}
             </h2>
-            <button
-              onClick={handlePhotoChange}
-              className="text-blue-600 font-medium hover:underline focus:outline-none focus:underline"
-            >
+            <label className="text-blue-600 font-medium hover:underline focus:outline-none focus:underline cursor-pointer">
               Change profile photo
-            </button>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handlePhotoChange}
+              />
+            </label>
           </div>
         </div>
 
@@ -152,6 +249,7 @@ export const EditProfilePage: React.FC = () => {
               onChange={(e) => handleInputChange('age', e.target.value)}
               className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-400 bg-white"
               placeholder="Age..."
+              disabled
             />
           </div>
 
@@ -184,7 +282,8 @@ export const EditProfilePage: React.FC = () => {
               <label className="text-gray-700 font-medium">Phone Number</label>
               <input
                 type="tel"
-                defaultValue="+1 (555) 123-4567"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white"
                 placeholder="Enter phone number"
               />
@@ -195,9 +294,11 @@ export const EditProfilePage: React.FC = () => {
               <label className="text-gray-700 font-medium">Email</label>
               <input
                 type="email"
-                defaultValue={profile?.email || "sarah.wilson@example.com"}
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white"
                 placeholder="Enter email address"
+                disabled
               />
             </div>
 
@@ -206,6 +307,8 @@ export const EditProfilePage: React.FC = () => {
               <label className="text-gray-700 font-medium">Date of Birth</label>
               <input
                 type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white"
               />
             </div>
@@ -215,7 +318,8 @@ export const EditProfilePage: React.FC = () => {
               <label className="text-gray-700 font-medium">Emergency Contact</label>
               <input
                 type="text"
-                defaultValue="John Smith - (555) 123-4567"
+                value={formData.emergencyContact}
+                onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white"
                 placeholder="Enter emergency contact"
               />
@@ -226,7 +330,8 @@ export const EditProfilePage: React.FC = () => {
               <label className="text-gray-700 font-medium">Address</label>
               <textarea
                 rows={3}
-                defaultValue="123 Main Street, Toronto, ON M5V 3A8, Canada"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white resize-none"
                 placeholder="Enter your address"
               />

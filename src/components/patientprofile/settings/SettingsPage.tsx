@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { SettingsSection } from './SettingsSection';
 import { SettingsItem } from './SettingsItem';
 import { LogoutPopup } from './LogoutPopup';
 import { BottomNavigation } from '../category/BottomNavigation';
+import { usePatientProfile } from '../../../hooks/usePatientProfile';
 
 interface SettingsPageProps {
   onBack?: () => void;
@@ -15,6 +16,7 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const { user, profile, signOut } = useAuth();
+  const { patientProfile, loading: profileLoading } = usePatientProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -75,6 +77,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       case 'privacy':
         navigate('/patient/profile/setting/policy');
         break;
+      case 'profile':
+        navigate('/patient/profile/setting/editprofile');
+        break;
       default:
         console.log(`Navigate to ${setting}`);
         // Implement navigation to other specific settings
@@ -131,7 +136,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   };
 
   // Determine current tab based on route
-  React.useEffect(() => {
+  useEffect(() => {
     const path = location.pathname;
     if (path.includes('/search')) {
       setActiveNavTab('search');
@@ -145,6 +150,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       setActiveNavTab('home');
     }
   }, [location.pathname]);
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <>

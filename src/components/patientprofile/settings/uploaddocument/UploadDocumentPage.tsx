@@ -1,6 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, Upload, FileText, Camera, Image, Folder, X, Check, AlertCircle, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, FileText, Trash2, RotateCcw, Check, AlertCircle, Image, Folder, X, Camera, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { usePatientProfile } from '../../../../hooks/usePatientProfile';
+import { dbService } from '../../../../lib/supabase';
 
 interface UploadedFile {
   id: string;
@@ -10,14 +13,23 @@ interface UploadedFile {
   uploadDate: string;
   status: 'uploading' | 'success' | 'error';
   progress?: number;
+  file: File;
 }
 
 export const UploadDocumentPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { medicalRecords, addMedicalRecord, deleteMedicalRecord, loading } = usePatientProfile();
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploadMethod, setUploadMethod] = useState<'gallery' | 'file' | null>(null);
+
+  // Load existing medical records
+  useEffect(() => {
+    console.log('Medical records:', medicalRecords);
+  }, [medicalRecords]);
 
   const handleBack = () => {
     navigate('/patient/profile/setting');
@@ -35,45 +47,93 @@ export const UploadDocumentPage: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const simulateUpload = (file: File): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const fileId = Date.now().toString();
-      const newFile: UploadedFile = {
-        id: fileId,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        uploadDate: new Date().toISOString(),
-        status: 'uploading',
-        progress: 0
-      };
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+    
+    try {
+      // Upload to storage
+      const path = `medical_records/${user.id}/${Date.now()}_${file.name}`;
+      await dbService.uploadFile('documents', path, file);
+      
+      // Get public URL
+      return dbService.getFileUrl('documents', path);
+    } catch (error) {
+      console.error('Error uploading file to storage:', error);
+      throw error;
+    }
+  };
 
-      setUploadedFiles(prev => [...prev, newFile]);
+  const handleFileUpload = async (file: File, fileId: string): Promise<void> => {
+    if (!user) throw new Error('User not authenticated');
+    
+    try {
+      // Upload file to storage
+      const documentUrl = await uploadFileToStorage(file);
+      
+      // Add record to database
+      await addMedicalRecord({
+        record_type: file.type.startsWith('image/') ? 'Image' : 'Document',
+        document_name: file.name,
+        document_url: documentUrl
+      });
+      
+      // Update local state
+      setUploadedFiles(prev => prev.map(f => {
+        if (f.id === fileId) {
+          return { ...f, status: 'success', progress: 100 };
+        }
+        return f;
+      }));
+    } catch (error) {
+      console.error('Error uploading medical record:', error);
+      
+      // Update local state to show error
+      setUploadedFiles(prev => prev.map(f => {
+        if (f.id === fileId) {
+          return { ...f, status: 'error', progress: 100 };
+        }
+        return f;
+      }));
+      
+      throw error;
+    }
+  };
 
-      // Simulate upload progress
-      const interval = setInterval(() => {
-        setUploadedFiles(prev => prev.map(f => {
-          if (f.id === fileId) {
-            const newProgress = (f.progress || 0) + Math.random() * 30;
-            if (newProgress >= 100) {
-              clearInterval(interval);
-              // Randomly simulate success or failure
-              const success = Math.random() > 0.3; // 70% success rate
-              setTimeout(() => {
-                if (success) {
-                  resolve();
-                } else {
-                  reject(new Error('Upload failed'));
-                }
-              }, 500);
-              return { ...f, progress: 100, status: success ? 'success' : 'error' };
-            }
-            return { ...f, progress: newProgress };
+  const simulateUpload = async (file: File): Promise<void> => {
+    const fileId = Date.now().toString();
+    const newFile: UploadedFile = {
+      id: fileId,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      uploadDate: new Date().toISOString(),
+      status: 'uploading',
+      progress: 0,
+      file: file
+    };
+
+    setUploadedFiles(prev => [...prev, newFile]);
+
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadedFiles(prev => prev.map(f => {
+        if (f.id === fileId) {
+          const newProgress = (f.progress || 0) + Math.random() * 30;
+          if (newProgress >= 100) {
+            clearInterval(interval);
+            
+            // Start actual upload to storage and database
+            handleFileUpload(file, fileId).catch(err => {
+              console.error('Failed to upload file:', err);
+            });
+            
+            return { ...f, progress: 100 };
           }
-          return f;
-        }));
-      }, 200);
-    });
+          return { ...f, progress: newProgress };
+        }
+        return f;
+      }));
+    }, 200);
   };
 
   const handleFileSelect = async (files: FileList | null) => {
@@ -145,15 +205,23 @@ export const UploadDocumentPage: React.FC = () => {
   const handleRetryUpload = (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file) {
-      // Create a mock file for retry
-      const mockFile = new File([''], file.name, { type: file.type });
-      Object.defineProperty(mockFile, 'size', { value: file.size });
-      simulateUpload(mockFile);
+      // Remove the failed file and try again
+      setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+      simulateUpload(file.file);
     }
   };
 
-  const handleDeleteFile = (fileId: string) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+  const handleDeleteFile = async (fileId: string, isExistingRecord: boolean = false) => {
+    if (isExistingRecord) {
+      try {
+        await deleteMedicalRecord(fileId);
+      } catch (error) {
+        console.error('Failed to delete medical record:', error);
+        alert('Failed to delete record. Please try again.');
+      }
+    } else {
+      setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    }
   };
 
   const getFileIcon = (fileName: string) => {
@@ -174,6 +242,14 @@ export const UploadDocumentPage: React.FC = () => {
         return <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -284,11 +360,12 @@ export const UploadDocumentPage: React.FC = () => {
         </div>
 
         {/* Uploaded Files List */}
-        {uploadedFiles.length > 0 && (
+        {(uploadedFiles.length > 0 || medicalRecords.length > 0) && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Uploaded Files</h3>
             
             <div className="space-y-3">
+              {/* Currently uploading files */}
               {uploadedFiles.map((file) => (
                 <div
                   key={file.id}
@@ -350,6 +427,41 @@ export const UploadDocumentPage: React.FC = () => {
                           </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Previously uploaded medical records */}
+              {medicalRecords.map((record) => (
+                <div
+                  key={record.id}
+                  className="bg-white rounded-2xl p-4 border border-gray-200"
+                >
+                  <div className="flex items-center space-x-3">
+                    {/* File Icon */}
+                    <div className="flex-shrink-0">
+                      {getFileIcon(record.document_name)}
+                    </div>
+
+                    {/* File Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-medium text-gray-900 truncate">{record.document_name}</p>
+                        <div className="flex items-center space-x-2">
+                          <Check className="w-5 h-5 text-green-500" />
+                          <button
+                            onClick={() => handleDeleteFile(record.id, true)}
+                            className="p-1 text-gray-400 hover:text-red-500 transition-colors duration-200"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-500">{record.record_type} • {new Date(record.upload_date).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
