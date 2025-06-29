@@ -19,10 +19,7 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3>
           <p className="text-gray-600 leading-relaxed">
-            "I'm a dentist with {provider.yearsOfExperience} years of experience, dedicated to 
-            providing compassionate and effective dental care. I specialize in preventive, 
-            restorative, and cosmetic treatments, helping patients achieve healthy and 
-            confident smiles."
+            "{provider.description || `I'm a ${provider.specialization} with ${provider.yearsOfExperience} years of experience, dedicated to providing compassionate and effective care.`}"
           </p>
         </div>
 
@@ -30,7 +27,7 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Education</h3>
           <p className="text-gray-600">
-            Doctor of Dental Surgery (DDS) - in the USA
+            Doctor of {provider.specialization} - in the USA
           </p>
         </div>
 
@@ -93,8 +90,8 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
                 <span className="font-medium text-gray-900">Anonymous feedback</span>
               </div>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Very competent specialist. I am very happy that there are such professional doctors. 
-                My baby is in safe hands. My child's health is above all.
+                Very competent specialist. I am very happy that there are such professional {provider.specialization.toLowerCase()}s. 
+                My health is in safe hands. Excellent care and attention to detail.
               </p>
             </div>
 
@@ -107,8 +104,8 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
                 <span className="font-medium text-gray-900">Erika Lhee</span>
               </div>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Just a wonderful doctor, very happy that she is leading our child, competent, 
-                very smart, nice.
+                Just a wonderful {provider.specialization.toLowerCase()}, very happy with the treatment, competent, 
+                very professional, and friendly. Highly recommend!
               </p>
             </div>
           </div>

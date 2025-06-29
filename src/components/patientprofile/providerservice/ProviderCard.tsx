@@ -102,7 +102,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 
         {/* Description */}
         <p className="text-gray-600 text-sm leading-relaxed">
-          {provider.description}{' '}
+          {provider.description?.substring(0, 80)}{provider.description?.length > 80 ? '...' : ''}{' '}
           <button className="text-blue-600 font-medium hover:underline">
             Learn more
           </button>
