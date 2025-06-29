@@ -158,6 +158,19 @@ export interface ProviderCategory {
   created_at: string;
 }
 
+export interface InsuranceBenefit {
+  id: string;
+  patient_id: string;
+  benefit_type: string;
+  provider_name: string;
+  policy_number?: string;
+  total_amount: number;
+  used_amount: number;
+  renewal_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Combined types for UI
 export interface ProviderWithProfile extends ProviderProfile {
   user_profile?: UserProfile;
@@ -647,6 +660,56 @@ export const dbService = {
       // Return mock categories on error
       return mockCategories();
     }
+  },
+
+  // Insurance benefits
+  async getInsuranceBenefits(patientId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('insurance_benefits')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('benefit_type', { ascending: true });
+      
+      if (error) throw error;
+      return data as InsuranceBenefit[];
+    } catch (err) {
+      console.error('Error fetching insurance benefits:', err);
+      return [];
+    }
+  },
+
+  async addInsuranceBenefit(benefit: Omit<InsuranceBenefit, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('insurance_benefits')
+      .insert(benefit)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as InsuranceBenefit;
+  },
+
+  async updateInsuranceBenefit(benefitId: string, updates: Partial<InsuranceBenefit>) {
+    const { data, error } = await supabase
+      .from('insurance_benefits')
+      .update(updates)
+      .eq('id', benefitId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as InsuranceBenefit;
+  },
+
+  async deleteInsuranceBenefit(benefitId: string) {
+    const { error } = await supabase
+      .from('insurance_benefits')
+      .delete()
+      .eq('id', benefitId);
+    
+    if (error) throw error;
+    return true;
   },
 
   // File storage
