@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Trash2, RotateCcw, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { usePatientProfile } from '../../../../hooks/usePatientProfile';
+import { dbService } from '../../../../lib/supabase';
 
 export const CameraScanPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addMedicalRecord } = usePatientProfile();
   const [scanProgress, setScanProgress] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
   const [fileName] = useState('HannahBusing_Resume.pdf');
   const [fileSize] = useState('200 KB');
+  const [fileData, setFileData] = useState<Blob | null>(null);
 
   const handleBack = () => {
     navigate('/patient/profile/setting/uploaddoc');
@@ -28,6 +34,10 @@ export const CameraScanPage: React.FC = () => {
           setTimeout(() => {
             setIsScanning(false);
             setScanComplete(true);
+            
+            // Create a mock file blob
+            const mockData = new Blob(['Simulated document data'], { type: 'application/pdf' });
+            setFileData(mockData);
           }, 500);
           return 100;
         }
@@ -40,11 +50,36 @@ export const CameraScanPage: React.FC = () => {
     setScanProgress(0);
     setIsScanning(false);
     setScanComplete(false);
+    setFileData(null);
   };
 
-  const handleConfirmScan = () => {
-    // Navigate back to upload document page with success
-    navigate('/patient/profile/setting/uploaddoc');
+  const handleConfirmScan = async () => {
+    if (!user || !fileData) return;
+    
+    try {
+      // Create a File object from the Blob
+      const file = new File([fileData], fileName, { type: 'application/pdf' });
+      
+      // Upload to storage
+      const path = `medical_records/${user.id}/${Date.now()}_${fileName}`;
+      await dbService.uploadFile('documents', path, file);
+      
+      // Get the public URL
+      const documentUrl = dbService.getFileUrl('documents', path);
+      
+      // Add to database
+      await addMedicalRecord({
+        record_type: 'Scanned Document',
+        document_name: fileName,
+        document_url: documentUrl
+      });
+      
+      // Navigate back to upload document page with success
+      navigate('/patient/profile/setting/uploaddoc');
+    } catch (error) {
+      console.error('Failed to save scanned document:', error);
+      alert('Failed to save document. Please try again.');
+    }
   };
 
   // Auto-start scanning when component mounts

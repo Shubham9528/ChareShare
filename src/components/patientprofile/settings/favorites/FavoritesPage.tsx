@@ -30,12 +30,12 @@ export const FavoritesPage: React.FC = () => {
         // Transform data to match our UI needs
         const providers = data.map(item => ({
           id: item.provider_id,
-          name: item.provider.user_profile.full_name,
-          specialization: item.provider.specialization,
-          image: item.provider.user_profile.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
-          rating: item.provider.rating,
-          reviewCount: item.provider.review_count,
-          address: item.provider.clinic_address || '123 Medical Center, Downtown',
+          name: item.provider?.user_profile?.full_name || 'Provider Name',
+          specialization: item.provider?.specialization || 'Healthcare Provider',
+          image: item.provider?.user_profile?.avatar_url || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400',
+          rating: item.provider?.rating || 4.5,
+          reviewCount: item.provider?.review_count || 0,
+          address: item.provider?.clinic_address || '123 Medical Center, Downtown',
           distance: '2.5km', // Would need geolocation
           estimatedTime: '20 min', // Would need routing
           availability: 'Mon-Fri',
@@ -46,6 +46,7 @@ export const FavoritesPage: React.FC = () => {
         setFavoriteProviders(providers);
       } catch (err) {
         console.error('Error fetching favorites:', err);
+        setFavoriteProviders([]);
       } finally {
         setLoading(false);
       }
@@ -188,7 +189,10 @@ export const FavoritesPage: React.FC = () => {
           </div>
 
           {/* Sort/Filter Button */}
-          <button className="p-3 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          <button 
+            onClick={() => setSortBy(sortBy === 'default' ? 'rating' : sortBy === 'rating' ? 'distance' : 'default')}
+            className="p-3 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
             <Filter className="w-5 h-5 text-gray-600" />
           </button>
         </div>
@@ -200,7 +204,7 @@ export const FavoritesPage: React.FC = () => {
           </h2>
           
           <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <span>Default</span>
+            <span>{sortBy === 'default' ? 'Default' : sortBy === 'rating' ? 'Rating' : 'Distance'}</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
             </svg>
@@ -300,7 +304,7 @@ export const FavoritesPage: React.FC = () => {
 
                   {/* Description */}
                   <p className="text-gray-600 text-sm leading-relaxed">
-                    I'm a dentist with 4 years of experience, dedicated to providing compassionate and{' '}
+                    I'm a {provider.specialization.toLowerCase()} with experience, dedicated to providing compassionate and{' '}
                     <button className="text-blue-600 font-medium hover:underline">
                       Learn more
                     </button>

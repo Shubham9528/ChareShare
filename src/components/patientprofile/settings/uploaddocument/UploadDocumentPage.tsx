@@ -1,6 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Upload, FileText, Camera, Image, Folder, X, Check, AlertCircle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { usePatientProfile } from '../../../../hooks/usePatientProfile';
+import { dbService } from '../../../../lib/supabase';
 
 interface UploadedFile {
   id: string;
@@ -10,14 +13,41 @@ interface UploadedFile {
   uploadDate: string;
   status: 'uploading' | 'success' | 'error';
   progress?: number;
+  file?: File;
 }
 
 export const UploadDocumentPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { medicalRecords, addMedicalRecord, deleteMedicalRecord } = usePatientProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploadMethod, setUploadMethod] = useState<'gallery' | 'file' | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Load existing medical records
+  useEffect(() => {
+    if (medicalRecords.length > 0) {
+      const existingFiles = medicalRecords.map(record => ({
+        id: record.id,
+        name: record.document_name,
+        size: 0, // Size not available from database
+        type: record.record_type,
+        uploadDate: record.upload_date,
+        status: 'success' as const
+      }));
+      
+      setUploadedFiles(prev => {
+        // Only add files that aren't already in the state
+        const existingIds = prev.map(f => f.id);
+        return [
+          ...prev,
+          ...existingFiles.filter(f => !existingIds.includes(f.id))
+        ];
+      });
+    }
+  }, [medicalRecords]);
 
   const handleBack = () => {
     navigate('/patient/profile/setting');
@@ -35,6 +65,42 @@ export const UploadDocumentPage: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+    
+    const path = `medical_records/${user.id}/${Date.now()}_${file.name}`;
+    await dbService.uploadFile('documents', path, file);
+    return dbService.getFileUrl('documents', path);
+  };
+
+  const handleFileUploadToDatabase = async (file: UploadedFile) => {
+    if (!user || !file.file) return;
+    
+    try {
+      // Upload file to storage and get URL
+      const documentUrl = await uploadFileToStorage(file.file);
+      
+      // Add record to database
+      await addMedicalRecord({
+        record_type: file.type || 'document',
+        document_name: file.name,
+        document_url: documentUrl
+      });
+      
+      // Update local state
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === file.id ? { ...f, status: 'success' as const } : f
+      ));
+    } catch (error) {
+      console.error('Failed to upload document:', error);
+      
+      // Update local state to show error
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === file.id ? { ...f, status: 'error' as const } : f
+      ));
+    }
+  };
+
   const simulateUpload = (file: File): Promise<void> => {
     return new Promise((resolve, reject) => {
       const fileId = Date.now().toString();
@@ -42,10 +108,11 @@ export const UploadDocumentPage: React.FC = () => {
         id: fileId,
         name: file.name,
         size: file.size,
-        type: file.type,
+        type: file.type.includes('image') ? 'Image' : 'Document',
         uploadDate: new Date().toISOString(),
         status: 'uploading',
-        progress: 0
+        progress: 0,
+        file: file
       };
 
       setUploadedFiles(prev => [...prev, newFile]);
@@ -57,16 +124,15 @@ export const UploadDocumentPage: React.FC = () => {
             const newProgress = (f.progress || 0) + Math.random() * 30;
             if (newProgress >= 100) {
               clearInterval(interval);
-              // Randomly simulate success or failure
-              const success = Math.random() > 0.3; // 70% success rate
+              
+              // Start actual upload to database
               setTimeout(() => {
-                if (success) {
-                  resolve();
-                } else {
-                  reject(new Error('Upload failed'));
-                }
+                handleFileUploadToDatabase(newFile)
+                  .then(resolve)
+                  .catch(reject);
               }, 500);
-              return { ...f, progress: 100, status: success ? 'success' : 'error' };
+              
+              return { ...f, progress: 100 };
             }
             return { ...f, progress: newProgress };
           }
@@ -144,16 +210,35 @@ export const UploadDocumentPage: React.FC = () => {
 
   const handleRetryUpload = (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
-    if (file) {
-      // Create a mock file for retry
-      const mockFile = new File([''], file.name, { type: file.type });
-      Object.defineProperty(mockFile, 'size', { value: file.size });
-      simulateUpload(mockFile);
+    if (file && file.file) {
+      // Remove the failed file
+      setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+      
+      // Create a new upload
+      simulateUpload(file.file);
     }
   };
 
-  const handleDeleteFile = (fileId: string) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      setLoading(true);
+      
+      // Check if this is a file from the database
+      const dbRecord = medicalRecords.find(record => record.id === fileId);
+      
+      if (dbRecord) {
+        // Delete from database
+        await deleteMedicalRecord(fileId);
+      }
+      
+      // Remove from local state
+      setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      alert('Failed to delete file. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getFileIcon = (fileName: string) => {
@@ -315,6 +400,7 @@ export const UploadDocumentPage: React.FC = () => {
                           <button
                             onClick={() => handleDeleteFile(file.id)}
                             className="p-1 text-gray-400 hover:text-red-500 transition-colors duration-200"
+                            disabled={loading}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -322,9 +408,11 @@ export const UploadDocumentPage: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
-                        {file.status === 'uploading' && (
-                          <span className="text-sm text-blue-600">{Math.round(file.progress || 0)}%</span>
+                        <p className="text-sm text-gray-500">
+                          {file.size ? formatFileSize(file.size) : new Date(file.uploadDate).toLocaleDateString()}
+                        </p>
+                        {file.status === 'uploading' && file.progress && (
+                          <span className="text-sm text-blue-600">{Math.round(file.progress)}%</span>
                         )}
                       </div>
 

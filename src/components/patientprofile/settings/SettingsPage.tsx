@@ -75,6 +75,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       case 'privacy':
         navigate('/patient/profile/setting/policy');
         break;
+      case 'profile':
+        navigate('/patient/profile/setting/editprofile');
+        break;
       default:
         console.log(`Navigate to ${setting}`);
         // Implement navigation to other specific settings

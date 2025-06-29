@@ -79,7 +79,7 @@ export const usePatientProfile = () => {
 
     try {
       const updatedProfile = await dbService.updatePatientProfile(user.id, updates);
-      setPatientProfile(updatedProfile);
+      setPatientProfile(prev => prev ? { ...prev, ...updatedProfile } : updatedProfile);
       return updatedProfile;
     } catch (err) {
       console.error('Error updating patient profile:', err);

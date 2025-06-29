@@ -20,7 +20,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [bloodType, setBloodType] = useState('A+');
   const [activeNavTab, setActiveNavTab] = useState('profile');
   
   const {
@@ -34,6 +33,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
     addMedicalRecord,
     deleteMedicalRecord
   } = usePatientProfile();
+  
+  // State for UI elements
+  const [bloodType, setBloodType] = useState('A+');
   
   // Modal states
   const [showAddContact, setShowAddContact] = useState(false);
@@ -237,8 +239,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
 
   const handleDocumentUpload = async (document: { name: string; type: string; file: File }) => {
     try {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       // First upload the file to storage
-      const path = `medical_records/${user?.id}/${Date.now()}_${document.file.name}`;
+      const path = `medical_records/${user.id}/${Date.now()}_${document.file.name}`;
       await dbService.uploadFile('documents', path, document.file);
       
       // Get the public URL
@@ -502,9 +508,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
             </div>
           </ProfileSection>
         </div>
-
-        {/* Bottom Navigation */}
-       
       </div>
 
       {/* Modals */}
