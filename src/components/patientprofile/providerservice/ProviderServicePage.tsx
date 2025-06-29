@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ProviderServiceHeader } from './ProviderServiceHeader';
 import { SearchFilters } from './SearchFilters';
 import { ProviderResults } from './ProviderResults';
@@ -21,7 +21,6 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
   onNavigateToCategory
 }) => {
   const { category } = useParams<{ category: string }>();
-  const navigate = useNavigate();
   const [selectedDetailedProvider, setSelectedDetailedProvider] = useState<DetailedProvider | null>(null);
   
   const {
@@ -61,15 +60,15 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
   const handleProviderCardClick = (provider: DetailedProvider) => {
     setSelectedDetailedProvider(provider);
     // Update URL to show selected profile
-    navigate(`/patient/providers/${category}/selectedprofile`, { 
-      state: { provider } 
-    });
+    const newUrl = window.location.pathname.replace(/\/providers\/[^/]+$/, `/providers/${category}/selectedprofile`);
+    window.history.pushState({}, '', newUrl);
   };
 
   const handleBackFromProfile = () => {
     setSelectedDetailedProvider(null);
     // Update URL to go back to provider list
-    navigate(`/patient/providers/${category}`);
+    const newUrl = window.location.pathname.replace('/selectedprofile', '');
+    window.history.pushState({}, '', newUrl);
   };
 
   const handleBack = () => {
@@ -86,7 +85,7 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
     // If we don't have a selected provider but we're on the route, select the first one
     const providerToShow = selectedDetailedProvider || (providers.length > 0 ? providers[0] : null);
     
-    if (!providerToShow && loading) {
+    if (!providerToShow) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
@@ -99,7 +98,7 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
     
     return (
       <ProviderProfilePage 
-        provider={providerToShow ? {
+        provider={{
           id: providerToShow.id,
           name: providerToShow.user_profile?.full_name || 'Provider Name',
           specialization: providerToShow.specialization || 'Healthcare Provider',
@@ -114,7 +113,7 @@ export const ProviderServicePage: React.FC<ProviderServicePageProps> = ({
           hours: '9am - 5pm',
           yearsOfExperience: providerToShow.years_of_experience || 0,
           consultationFee: providerToShow.consultation_fee || 0
-        } : undefined}
+        }}
         onBack={handleBackFromProfile}
         onNavigateToCategory={onNavigateToCategory}
       />
