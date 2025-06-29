@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { ArrowLeft, Image, FileText, MapPin, Users, Share, Plus, X, Camera, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useProviderPosts } from '../../../hooks/useProviderPosts';
+import { dbService } from '../../../lib/supabase';
 
 interface UploadedMedia {
   id: string;
@@ -11,6 +14,8 @@ interface UploadedMedia {
 
 export const AddPostPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addPost } = useProviderPosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedType, setSelectedType] = useState<'media' | 'articles'>('media');
   const [caption, setCaption] = useState('');
@@ -26,6 +31,7 @@ export const AddPostPage: React.FC = () => {
   const [newCategory, setNewCategory] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = ['Healthcare', 'Mental Health', 'Wellness', 'Medical'];
 
@@ -33,7 +39,9 @@ export const AddPostPage: React.FC = () => {
     navigate('/provider');
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
+    if (isSubmitting) return;
+    
     if (selectedType === 'media' && !caption.trim() && uploadedMedia.length === 0) {
       alert('Please add some content or media to your post');
       return;
@@ -44,23 +52,38 @@ export const AddPostPage: React.FC = () => {
       return;
     }
 
-    const postData = {
-      type: selectedType,
-      caption: caption.trim(),
-      articleTitle: articleTitle.trim(),
-      articleContent: articleContent.trim(),
-      categories: selectedCategories,
-      location: location.trim(),
-      taggedPeople,
-      media: uploadedMedia.map(m => ({ type: m.type, name: m.file.name })),
-      timestamp: new Date().toISOString()
-    };
+    setIsSubmitting(true);
 
-    console.log('Posting:', postData);
-    
-    // Simulate successful post
-    alert('Post created successfully!');
-    navigate('/provider');
+    try {
+      let imageUrl = '';
+      
+      // If there's uploaded media, upload it to storage
+      if (uploadedMedia.length > 0) {
+        const file = uploadedMedia[0].file;
+        const path = `posts/${user?.id}/${Date.now()}_${file.name}`;
+        await dbService.uploadFile('posts', path, file);
+        imageUrl = dbService.getFileUrl('posts', path);
+      }
+      
+      // Create post data
+      const postData = {
+        title: selectedType === 'articles' ? articleTitle : caption.substring(0, 50),
+        content: selectedType === 'articles' ? articleContent : caption,
+        image_url: imageUrl,
+        categories: selectedCategories
+      };
+      
+      // Add post to database
+      await addPost(postData);
+      
+      // Navigate back to provider profile
+      navigate('/provider');
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('Failed to create post. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileUpload = () => {
@@ -142,7 +165,8 @@ export const AddPostPage: React.FC = () => {
           
           <button
             onClick={handlePost}
-            disabled={(selectedType === 'media' && !caption.trim() && uploadedMedia.length === 0) || 
+            disabled={isSubmitting || 
+                     (selectedType === 'media' && !caption.trim() && uploadedMedia.length === 0) || 
                      (selectedType === 'articles' && (!articleTitle.trim() || !articleContent.trim()))}
             className={`px-4 py-2 font-semibold rounded-lg transition-colors duration-200 focus:outline-none ${
               (selectedType === 'media' && (caption.trim() || uploadedMedia.length > 0)) || 
@@ -151,7 +175,7 @@ export const AddPostPage: React.FC = () => {
                 : 'text-gray-400 cursor-not-allowed'
             }`}
           >
-            Post
+            {isSubmitting ? 'Posting...' : 'Post'}
           </button>
         </div>
       </header>

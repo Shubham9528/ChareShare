@@ -4,82 +4,43 @@ import { useNavigate } from 'react-router-dom';
 import { BookingCard } from './BookingCard';
 import { BookingTabs } from './BookingTabs';
 import { ProviderBottomNavigation } from '../ProviderBottomNavigation';
-
-export type BookingStatus = 'upcoming' | 'completed' | 'cancelled';
-
-interface Booking {
-  id: string;
-  bookingNumber: string;
-  patientName: string;
-  patientAvatar: string;
-  date: string;
-  time: string;
-  status: BookingStatus;
-}
-
-// Mock data for provider bookings
-const mockBookings: Booking[] = [
-  {
-    id: '1',
-    bookingNumber: '#23567',
-    patientName: 'Darlene Robertson',
-    patientAvatar: 'https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: 'May 22, 2023',
-    time: '10:00 AM',
-    status: 'upcoming'
-  },
-  {
-    id: '2',
-    bookingNumber: '#23567',
-    patientName: 'Leslie Alexander',
-    patientAvatar: 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: 'May 22, 2023',
-    time: '10:00 AM',
-    status: 'upcoming'
-  },
-  {
-    id: '3',
-    bookingNumber: '#23567',
-    patientName: 'Cody Fisher',
-    patientAvatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: 'May 22, 2023',
-    time: '10:00 AM',
-    status: 'upcoming'
-  },
-  {
-    id: '4',
-    bookingNumber: '#23567',
-    patientName: 'Kristin Watson',
-    patientAvatar: 'https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: 'May 22, 2023',
-    time: '10:00 AM',
-    status: 'upcoming'
-  },
-  {
-    id: '5',
-    bookingNumber: '#23568',
-    patientName: 'Robert Johnson',
-    patientAvatar: 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: 'May 20, 2023',
-    time: '2:00 PM',
-    status: 'completed'
-  },
-  {
-    id: '6',
-    bookingNumber: '#23569',
-    patientName: 'Emily Davis',
-    patientAvatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: 'May 18, 2023',
-    time: '11:30 AM',
-    status: 'cancelled'
-  }
-];
+import { useProviderBookings, BookingStatus } from '../../../hooks/useProviderBookings';
 
 export const ProviderBookingsPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
+  
+  const { 
+    bookings, 
+    loading, 
+    setStatus,
+    updateBookingStatus
+  } = useProviderBookings(activeTab);
 
-  const filteredBookings = mockBookings.filter(booking => booking.status === activeTab);
+  // Update status when tab changes
+  const handleTabChange = (tab: BookingStatus) => {
+    setActiveTab(tab);
+    setStatus(tab);
+  };
+
+  // Handle booking actions
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      await updateBookingStatus(bookingId, 'cancelled');
+    } catch (error) {
+      console.error('Failed to cancel booking:', error);
+      alert('Failed to cancel booking. Please try again.');
+    }
+  };
+
+  const handleCompleteBooking = async (bookingId: string) => {
+    try {
+      await updateBookingStatus(bookingId, 'completed');
+    } catch (error) {
+      console.error('Failed to complete booking:', error);
+      alert('Failed to complete booking. Please try again.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -104,12 +65,16 @@ export const ProviderBookingsPage: React.FC = () => {
         {/* Tabs */}
         <BookingTabs 
           activeTab={activeTab} 
-          onTabChange={setActiveTab} 
+          onTabChange={handleTabChange} 
         />
 
         {/* Bookings List */}
         <div className="space-y-4 mt-6">
-          {filteredBookings.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : bookings.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-gray-400" />
@@ -124,10 +89,20 @@ export const ProviderBookingsPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredBookings.map((booking) => (
+            bookings.map((booking) => (
               <BookingCard
                 key={booking.id}
-                booking={booking}
+                booking={{
+                  id: booking.id,
+                  bookingNumber: `#${booking.id.substring(0, 5)}`,
+                  patientName: booking.patient.user_profile.full_name,
+                  patientAvatar: booking.patient.user_profile.avatar_url || 'https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=100',
+                  date: new Date(booking.appointment_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                  time: booking.appointment_time.substring(0, 5),
+                  status: booking.status
+                }}
+                onCancel={handleCancelBooking}
+                onComplete={handleCompleteBooking}
               />
             ))
           )}

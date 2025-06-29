@@ -13,6 +13,24 @@ export const PackageFeesPage: React.FC = () => {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<ProviderPackage | null>(null);
+  const [groupedPackages, setGroupedPackages] = useState<Record<string, ProviderPackage[]>>({});
+
+  // Group packages by type
+  useEffect(() => {
+    if (packages && packages.length > 0) {
+      const grouped = packages.reduce((acc, pkg) => {
+        if (!acc[pkg.package_type]) {
+          acc[pkg.package_type] = [];
+        }
+        acc[pkg.package_type].push(pkg);
+        return acc;
+      }, {} as Record<string, ProviderPackage[]>);
+      
+      setGroupedPackages(grouped);
+    } else {
+      setGroupedPackages({});
+    }
+  }, [packages]);
 
   const handleBack = () => {
     navigate('/provider/setting');
@@ -60,29 +78,16 @@ export const PackageFeesPage: React.FC = () => {
     }
   };
 
-  const getPackageIcon = (type: string) => {
-    switch (type) {
-      case 'voice':
-        return '📞';
-      case 'video':
-        return '📹';
-      case 'message':
-        return '💬';
-      case 'in-person':
-        return '👤';
-      default:
-        return '📦';
+  const handleDeletePackage = async (packageId: string) => {
+    if (confirm('Are you sure you want to delete this package?')) {
+      try {
+        await deletePackage(packageId);
+      } catch (error) {
+        console.error('Failed to delete package:', error);
+        alert('Failed to delete package. Please try again.');
+      }
     }
   };
-
-  // Group packages by type
-  const groupedPackages = packages.reduce((acc, pkg) => {
-    if (!acc[pkg.package_type]) {
-      acc[pkg.package_type] = [];
-    }
-    acc[pkg.package_type].push(pkg);
-    return acc;
-  }, {} as Record<string, ProviderPackage[]>);
 
   const getSectionTitle = (type: string) => {
     switch (type) {
@@ -183,13 +188,21 @@ export const PackageFeesPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Right Side - Edit Button */}
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="text-blue-600 font-semibold hover:underline focus:outline-none focus:underline transition-colors duration-200"
-                      >
-                        Edit
-                      </button>
+                      {/* Right Side - Action Buttons */}
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => handleEdit(item.id)}
+                          className="text-blue-600 font-semibold hover:underline focus:outline-none focus:underline transition-colors duration-200"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePackage(item.id)}
+                          className="text-red-600 font-semibold hover:underline focus:outline-none focus:underline transition-colors duration-200"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -30,15 +30,23 @@ export const ProviderSettingsPage: React.FC = () => {
     setIsSigningOut(true);
     
     try {
+      // Clear local state first for better UX
+      localStorage.removeItem('selectedUserType');
+      
       const result = await signOut();
       
       if (result.error) {
         console.error('Logout failed:', result.error);
-        alert('Logout failed: ' + result.error.message);
+        // Even if there's an error, we'll still redirect to the welcome page
+        // This handles the case where the session is already expired on the server
       }
+      
+      // Always navigate to welcome page after logout attempt
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Unexpected logout error:', error);
-      alert('An unexpected error occurred during logout');
+      // Still navigate to welcome page
+      navigate('/', { replace: true });
     } finally {
       setIsSigningOut(false);
       setShowLogoutPopup(false);
@@ -100,17 +108,39 @@ export const ProviderSettingsPage: React.FC = () => {
             >
               <div className="flex items-center space-x-4">
                 {/* Profile Avatar */}
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name || 'Profile'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.style.background = 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)';
+                          parent.innerHTML = `
+                            <div class="w-full h-full flex items-center justify-center text-white font-semibold">
+                              ${(profile.full_name || 'User').split(' ').map(n => n[0]).join('')}
+                            </div>
+                          `;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                  )}
                 </div>
                 
                 {/* User Info */}
                 <div className="text-left">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {profile?.full_name || 'John Worky'}
+                    {profile?.full_name || 'Provider Name'}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {profile?.email || 'hello@designpicko.com'}
+                    {profile?.email || 'provider@example.com'}
                   </p>
                 </div>
               </div>

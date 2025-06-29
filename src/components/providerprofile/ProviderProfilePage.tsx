@@ -6,30 +6,22 @@ import { ProviderProfileContent } from './ProviderProfileContent';
 import { ProviderBottomNavigation } from './ProviderBottomNavigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProviderProfile } from '../../hooks/useProviderProfile';
+import { useProviderPosts } from '../../hooks/useProviderPosts';
 
 export type ProviderTab = 'details' | 'posts' | 'articles';
 
 export const ProviderProfilePage: React.FC = () => {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<ProviderTab>('posts');
-  const { providerProfile, loading } = useProviderProfile();
-
-  const handleEdit = () => {
-    console.log('Edit profile');
-    // Implement edit functionality
-  };
-
-  const handleShare = () => {
-    console.log('Share profile');
-    // Implement share functionality
-  };
+  const { providerProfile, loading: profileLoading } = useProviderProfile();
+  const { posts, loading: postsLoading, addPost } = useProviderPosts();
 
   const handleAddContent = () => {
-    console.log('Add new content');
-    // Implement add content functionality
+    // Navigate to add post page
+    window.location.href = '/provider/addpost';
   };
 
-  if (loading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -45,7 +37,7 @@ export const ProviderProfilePage: React.FC = () => {
     experience: `+${providerProfile?.years_of_experience || 0} Year Experience`,
     avatar: profile?.avatar_url || 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=200',
     stats: {
-      articles: 275,
+      articles: posts.length || 0,
       followers: 234,
       reviews: providerProfile?.rating || 4.9,
     }
@@ -61,8 +53,6 @@ export const ProviderProfilePage: React.FC = () => {
         {/* Provider Info */}
         <ProviderProfileInfo 
           provider={providerData}
-          onEdit={handleEdit}
-          onShare={handleShare}
         />
 
         {/* Tabs */}
@@ -75,6 +65,8 @@ export const ProviderProfilePage: React.FC = () => {
         <ProviderProfileContent 
           activeTab={activeTab}
           onAddContent={handleAddContent}
+          posts={posts}
+          loading={postsLoading}
         />
       </div>
 
