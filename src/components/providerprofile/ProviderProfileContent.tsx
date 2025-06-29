@@ -3,25 +3,32 @@ import { Plus, MapPin, Clock, Edit, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ProviderTab } from './ProviderProfilePage';
 import { PhotoGrid } from './PhotoGrid';
+import { DetailedProvider } from '../../types/provider';
+import { useProviderDetails } from '../../hooks/useProviderDetails';
 
 interface ProviderProfileContentProps {
   activeTab: ProviderTab;
   onAddContent: () => void;
+  provider: DetailedProvider;
 }
 
 export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
   activeTab,
-  onAddContent
+  onAddContent,
+  provider
 }) => {
   const navigate = useNavigate();
+  const { updateProviderProfile } = useProviderDetails();
   
   // State for inline editing
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editData, setEditData] = useState({
-    description: "I'm a dentist with 4 years of experience, dedicated to providing compassionate and effective dental care. I specialize in preventive, restorative, and cosmetic treatments, helping patients achieve healthy and confident smiles.",
-    education: "Doctor of Dental Surgery (DDS) - in the USA",
-    address: "8398 Preston Rd, Inglewood, Maine 98262",
-    hours: "Mon-Sun | 11am - 11pm"
+    description: provider.description || "I'm a healthcare provider with experience, dedicated to providing compassionate and effective care.",
+    education: provider.specialization === 'Dentist' 
+      ? "Doctor of Dental Surgery (DDS) - in the USA" 
+      : `${provider.specialization} degree from accredited university`,
+    address: provider.address || "123 Medical Center, Downtown",
+    hours: provider.hours || "Mon-Fri | 9am - 5pm"
   });
 
   const handleAddContent = () => {
@@ -32,15 +39,42 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
     setEditingSection(section);
   };
 
-  const handleSaveSection = (section: string) => {
-    // Save the changes (in a real app, this would update the database)
-    console.log(`Saving ${section}:`, editData[section as keyof typeof editData]);
-    setEditingSection(null);
+  const handleSaveSection = async (section: string) => {
+    try {
+      // Save the changes to the database
+      const value = editData[section as keyof typeof editData];
+      
+      switch (section) {
+        case 'description':
+          await updateProviderProfile({ bio: value });
+          break;
+        case 'location':
+          await updateProviderProfile({ 
+            clinic_address: editData.address
+          });
+          break;
+        default:
+          console.log(`No database field mapping for section: ${section}`);
+      }
+      
+      setEditingSection(null);
+    } catch (error) {
+      console.error(`Failed to save ${section}:`, error);
+      alert(`Failed to save changes. Please try again.`);
+    }
   };
 
   const handleCancelEdit = () => {
     setEditingSection(null);
-    // Reset to original values if needed
+    // Reset to original values
+    setEditData({
+      description: provider.description || "I'm a healthcare provider with experience, dedicated to providing compassionate and effective care.",
+      education: provider.specialization === 'Dentist' 
+        ? "Doctor of Dental Surgery (DDS) - in the USA" 
+        : `${provider.specialization} degree from accredited university`,
+      address: provider.address || "123 Medical Center, Downtown",
+      hours: provider.hours || "Mon-Fri | 9am - 5pm"
+    });
   };
 
   const handleInputChange = (section: string, value: string) => {
@@ -277,7 +311,7 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
                 <svg className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                <span className="font-semibold text-gray-900">4.9 out of 5</span>
+                <span className="font-semibold text-gray-900">{provider.rating} out of 5</span>
               </div>
             </div>
             <button className="text-blue-600 font-medium hover:underline">
@@ -298,7 +332,7 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
                 <span className="font-medium text-gray-900">Anonymous feedback</span>
               </div>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Very competent specialist. I am very happy that there are such professional dentists. 
+                Very competent specialist. I am very happy that there are such professional {provider.specialization.toLowerCase()}s. 
                 My dental health is in safe hands. Excellent care and attention to detail.
               </p>
             </div>
@@ -312,7 +346,7 @@ export const ProviderProfileContent: React.FC<ProviderProfileContentProps> = ({
                 <span className="font-medium text-gray-900">Erika Lhee</span>
               </div>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Just a wonderful dentist, very happy with the treatment, competent, 
+                Just a wonderful {provider.specialization.toLowerCase()}, very happy with the treatment, competent, 
                 very professional, and friendly. Highly recommend!
               </p>
             </div>

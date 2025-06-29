@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Camera, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { useProviderProfile } from '../../../../hooks/useProviderProfile';
+import { useProviderDetails } from '../../../../hooks/useProviderDetails';
 import { dbService } from '../../../../lib/supabase';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, updateProfile } = useAuth();
-  const { providerProfile, loading, updateProviderProfile } = useProviderProfile();
+  const { provider, loading, updateProviderProfile } = useProviderDetails();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -38,18 +38,18 @@ export const EditProfilePage: React.FC = () => {
       }));
     }
     
-    if (providerProfile) {
+    if (provider) {
       setFormData(prev => ({
         ...prev,
-        experience: providerProfile.years_of_experience?.toString() || '',
-        specialist: providerProfile.specialization || '',
-        license_number: providerProfile.license_number || '',
-        clinic_name: providerProfile.clinic_name || '',
-        clinic_address: providerProfile.clinic_address || '',
-        bio: providerProfile.bio || ''
+        experience: provider.years_of_experience?.toString() || '',
+        specialist: provider.specialization || '',
+        license_number: provider.license_number || '',
+        clinic_name: provider.clinic_name || '',
+        clinic_address: provider.clinic_address || '',
+        bio: provider.bio || ''
       }));
     }
-  }, [profile, providerProfile]);
+  }, [profile, provider]);
 
   const handleBack = () => {
     navigate('/provider/setting');
